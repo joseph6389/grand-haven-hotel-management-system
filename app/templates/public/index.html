@@ -1,0 +1,349 @@
+{% extends 'base.html' %}
+
+{% block title %}Grand Haven Hotel — Seaside Luxury & World-Class Hospitality{% endblock %}
+
+{% block body %}
+<!-- Hero Section -->
+<section class="hero-section">
+  <div class="container text-center">
+    <div class="mb-3">
+      <span class="badge badge-gold px-3 py-2 text-uppercase letter-spacing-1">
+        <i class="bi bi-gem me-1"></i> Five-Star Coastal Sanctuary
+      </span>
+    </div>
+    <h1 class="hero-title font-serif">Where Coastal Elegance Meets Timeless Grandeur</h1>
+    <p class="hero-subtitle">
+      Experience thoughtful hospitality, well-appointed rooms, and attentive service for your stay in India.
+    </p>
+    <a href="#searchWidget" class="btn btn-gold btn-lg px-4 shadow">
+      <i class="bi bi-calendar-check me-2"></i> Reserve Your Stay
+    </a>
+  </div>
+</section>
+
+<!-- Search Availability Widget -->
+<div class="container" id="searchWidget">
+  <div class="search-widget">
+    <form action="{{ url_for('public.search_availability') }}" method="GET" class="row g-3 align-items-end">
+      <div class="col-lg-3 col-md-6">
+        <label for="check_in" class="form-label fw-semibold text-muted small text-uppercase">Check-In Date</label>
+        <div class="input-group">
+          <span class="input-group-text bg-light border-end-0"><i class="bi bi-calendar-event text-gold"></i></span>
+          <input type="date" class="form-control border-start-0" id="check_in" name="check_in" value="{{ default_checkin }}" required>
+        </div>
+      </div>
+      <div class="col-lg-3 col-md-6">
+        <label for="check_out" class="form-label fw-semibold text-muted small text-uppercase">Check-Out Date</label>
+        <div class="input-group">
+          <span class="input-group-text bg-light border-end-0"><i class="bi bi-calendar2-check text-gold"></i></span>
+          <input type="date" class="form-control border-start-0" id="check_out" name="check_out" value="{{ default_checkout }}" required>
+        </div>
+      </div>
+      <div class="col-lg-2 col-md-4">
+        <label for="adults" class="form-label fw-semibold text-muted small text-uppercase">Adults</label>
+        <select class="form-select" id="adults" name="adults">
+          <option value="1">1 Adult</option>
+          <option value="2" selected>2 Adults</option>
+          <option value="3">3 Adults</option>
+          <option value="4">4 Adults</option>
+        </select>
+      </div>
+      <div class="col-lg-2 col-md-4">
+        <label for="children" class="form-label fw-semibold text-muted small text-uppercase">Children</label>
+        <select class="form-select" id="children" name="children">
+          <option value="0" selected>0 Children</option>
+          <option value="1">1 Child</option>
+          <option value="2">2 Children</option>
+        </select>
+      </div>
+      <div class="col-lg-2 col-md-4">
+        <button type="submit" class="btn btn-gold w-100 py-2">
+          <i class="bi bi-search me-1"></i> Check Rates
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Hotel Introduction -->
+<section class="py-5 my-4">
+  <div class="container">
+    <div class="row align-items-center g-5">
+      <div class="col-lg-6">
+        <span class="text-gold fw-bold text-uppercase small letter-spacing-1">The Grand Haven Legacy</span>
+        <h2 class="display-6 font-serif mt-2 mb-4">A Refined Haven Crafted for Unforgettable Memories</h2>
+        <p class="text-muted leading-relaxed">
+          Perched on the scenic cliffs of Grand Haven, our property fuses architectural distinction with the warmth of genuine coastal hospitality. Every suite is curated with bespoke Italian linens, acoustic tranquility, and panoramic ocean vistas.
+        </p>
+        <p class="text-muted leading-relaxed">
+          From sunset dining at our signature ocean terrace to restorative treatments at our award-winning mineral spa, Grand Haven is your serene coastal sanctuary.
+        </p>
+        <div class="row g-4 pt-2">
+          <div class="col-sm-4 text-center text-sm-start">
+            <h3 class="fw-bold text-gold font-serif mb-0">16</h3>
+            <p class="text-muted small">Curated Suites</p>
+          </div>
+          <div class="col-sm-4 text-center text-sm-start">
+            <h3 class="fw-bold text-gold font-serif mb-0">100%</h3>
+            <p class="text-muted small">Oceanfront Panoramas</p>
+          </div>
+          <div class="col-sm-4 text-center text-sm-start">
+            <h3 class="fw-bold text-gold font-serif mb-0">24/7</h3>
+            <p class="text-muted small">Dedicated Butler Care</p>
+          </div>
+        </div>
+      </div>
+      <div class="col-lg-6">
+        <div class="position-relative">
+          <img src="https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=900&q=80" alt="Grand Haven Luxury Hotel Resort" class="img-fluid rounded-4 shadow-lg w-100" style="min-height: 400px; object-fit: cover;">
+          <div class="position-absolute bottom-0 start-0 m-4 p-3 bg-white rounded-3 shadow border-start border-4 border-warning d-none d-sm-block">
+            <div class="d-flex align-items-center gap-3">
+              <i class="bi bi-award text-gold fs-1"></i>
+              <div>
+                <strong class="d-block text-dark">AAA Five Diamond Award</strong>
+                <small class="text-muted">Recognized for Exceptional Hospitality</small>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Featured Room Types -->
+<section class="py-5 bg-white border-top border-bottom border-light" id="roomTypes">
+  <div class="container">
+    <div class="text-center max-w-700 mx-auto mb-5">
+      <span class="text-gold fw-bold text-uppercase small letter-spacing-1">Accommodations</span>
+      <h2 class="display-6 font-serif mt-1">Our Sanctuaries & Suites</h2>
+      <p class="text-muted">Designed for discerning guests who appreciate architectural precision, luxurious serenity, and stunning views.</p>
+    </div>
+
+    <div class="row g-4">
+      {% for rt in room_types %}
+      <div class="col-lg-6">
+        <div class="room-card">
+          <div class="room-card-img-wrapper">
+            <img src="{{ rt.image_url }}" alt="{{ rt.name }}" class="room-card-img" onerror="this.src='https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=1000&q=80';">
+            <div class="room-price-badge">
+              ₹{{ "{:,.2f}".format(rt.base_price) }} <span>/ night</span>
+            </div>
+          </div>
+          <div class="p-4 d-flex flex-column flex-grow-1">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+              <h4 class="font-serif mb-0">{{ rt.name }}</h4>
+              <span class="badge bg-gold-light text-gold-hover border border-warning">{{ rt.code }}</span>
+            </div>
+            <p class="text-muted small mb-3 flex-grow-1">{{ rt.description }}</p>
+
+            <div class="d-flex flex-wrap gap-3 small text-muted border-top border-bottom py-2 my-2">
+              <span><i class="bi bi-people text-gold me-1"></i> Up to {{ rt.max_capacity }} Guests</span>
+              <span><i class="bi bi-moon text-gold me-1"></i> {{ rt.bed_type }}</span>
+              <span><i class="bi bi-check2-circle text-gold me-1"></i> Luxury En-Suite</span>
+            </div>
+
+            <div class="d-flex justify-content-between align-items-center mt-3">
+              <span class="text-muted small">{{ rt.room_count }} Rooms Available</span>
+              <a href="{{ url_for('public.search_availability', room_type_id=rt.id, check_in=default_checkin, check_out=default_checkout) }}" class="btn btn-gold btn-sm">
+                Reserve Suite <i class="bi bi-arrow-right ms-1"></i>
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<!-- Resort Amenities & Facilities -->
+<section class="py-5" id="amenities">
+  <div class="container py-4">
+    <div class="text-center mb-5">
+      <span class="text-gold fw-bold text-uppercase small letter-spacing-1">Signature Amenities</span>
+      <h2 class="display-6 font-serif mt-1">Curated for Your Absolute Comfort</h2>
+      <p class="text-muted">Every detail of your stay has been meticulously crafted to elevate your senses.</p>
+    </div>
+
+    <div class="row g-4">
+      <div class="col-md-3 col-sm-6">
+        <div class="gh-card p-4 text-center h-100">
+          <div class="kpi-icon mx-auto mb-3"><i class="bi bi-water"></i></div>
+          <h5 class="font-serif">Infinity Ocean Pool</h5>
+          <p class="text-muted small mb-0">Heated salt-water infinity pool directly cantilevered over the ocean breakers.</p>
+        </div>
+      </div>
+      <div class="col-md-3 col-sm-6">
+        <div class="gh-card p-4 text-center h-100">
+          <div class="kpi-icon mx-auto mb-3"><i class="bi bi-cup-hot"></i></div>
+          <h5 class="font-serif">Gourmet Dining</h5>
+          <p class="text-muted small mb-0">Michelin-trained culinary artisans serving locally caught seafood and fine wine.</p>
+        </div>
+      </div>
+      <div class="col-md-3 col-sm-6">
+        <div class="gh-card p-4 text-center h-100">
+          <div class="kpi-icon mx-auto mb-3"><i class="bi bi-droplet"></i></div>
+          <h5 class="font-serif">Mineral Spa Rituals</h5>
+          <p class="text-muted small mb-0">Holistic seaweed wraps, organic hot stone therapies, and private sauna suites.</p>
+        </div>
+      </div>
+      <div class="col-md-3 col-sm-6">
+        <div class="gh-card p-4 text-center h-100">
+          <div class="kpi-icon mx-auto mb-3"><i class="bi bi-wifi"></i></div>
+          <h5 class="font-serif">High-Speed Fiber</h5>
+          <p class="text-muted small mb-0">Complimentary 1 Gbps fiber Wi-Fi throughout property grounds and private balconies.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Luxury Photo Gallery -->
+<section class="py-5 bg-white border-top border-bottom border-light">
+  <div class="container">
+    <div class="text-center mb-5">
+      <span class="text-gold fw-bold text-uppercase small letter-spacing-1">Visual Journey</span>
+      <h2 class="display-6 font-serif mt-1">Scenes from Grand Haven</h2>
+    </div>
+    <div class="row g-3">
+      <div class="col-md-4 col-sm-6">
+        <img src="https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&w=800&q=80" alt="Resort Exterior" class="img-fluid rounded-3 shadow-sm w-100" style="height: 240px; object-fit: cover;">
+      </div>
+      <div class="col-md-4 col-sm-6">
+        <img src="https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=800&q=80" alt="Ocean Suite" class="img-fluid rounded-3 shadow-sm w-100" style="height: 240px; object-fit: cover;">
+      </div>
+      <div class="col-md-4 col-sm-6">
+        <img src="https://images.unsplash.com/photo-1571896349842-33c89424de2d?auto=format&fit=crop&w=800&q=80" alt="Infinity Pool" class="img-fluid rounded-3 shadow-sm w-100" style="height: 240px; object-fit: cover;">
+      </div>
+      <div class="col-md-4 col-sm-6">
+        <img src="https://images.unsplash.com/photo-1618773928121-c32242e63f39?auto=format&fit=crop&w=800&q=80" alt="Executive Living Suite" class="img-fluid rounded-3 shadow-sm w-100" style="height: 240px; object-fit: cover;">
+      </div>
+      <div class="col-md-4 col-sm-6">
+        <img src="https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?auto=format&fit=crop&w=800&q=80" alt="Private Beachside Dining" class="img-fluid rounded-3 shadow-sm w-100" style="height: 240px; object-fit: cover;">
+      </div>
+      <div class="col-md-4 col-sm-6">
+        <img src="https://images.unsplash.com/photo-1578683010236-d716f9a3f461?auto=format&fit=crop&w=800&q=80" alt="Penthouse Terrace" class="img-fluid rounded-3 shadow-sm w-100" style="height: 240px; object-fit: cover;">
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Guest Testimonials (Clearly labeled demo content) -->
+<section class="py-5 bg-gold-light">
+  <div class="container py-3">
+    <div class="text-center mb-5">
+      <span class="badge badge-gold mb-2 text-uppercase">Guest Reviews (Demonstration Content)</span>
+      <h2 class="display-6 font-serif">Reflections from Our Distinguished Guests</h2>
+    </div>
+
+    <div class="row g-4">
+      <div class="col-md-4">
+        <div class="gh-card p-4 h-100 bg-white">
+          <div class="text-warning mb-3">
+            <i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i>
+          </div>
+          <p class="text-muted font-italic mb-4">"The Presidential Panorama Penthouse redefined luxury for us. The concierge made our anniversary weekend truly effortless and unforgettable."</p>
+          <div class="d-flex align-items-center gap-3">
+            <div class="rounded-circle bg-navy text-white d-flex align-items-center justify-content-center fw-bold" style="width: 42px; height: 42px; background: #1A2238;">VS</div>
+            <div>
+              <strong class="d-block text-dark">Vivienne St. Claire</strong>
+              <small class="text-muted">Stayed in Presidential Penthouse</small>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="gh-card p-4 h-100 bg-white">
+          <div class="text-warning mb-3">
+            <i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i>
+          </div>
+          <p class="text-muted font-italic mb-4">"Spectacular ocean acoustics, faultless room service, and flawless check-in. The reservation system was swift and clear."</p>
+          <div class="d-flex align-items-center gap-3">
+            <div class="rounded-circle bg-navy text-white d-flex align-items-center justify-content-center fw-bold" style="width: 42px; height: 42px; background: #1A2238;">MS</div>
+            <div>
+              <strong class="d-block text-dark">Marcus Sterling</strong>
+              <small class="text-muted">Stayed in Deluxe Oceanfront Haven</small>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="gh-card p-4 h-100 bg-white">
+          <div class="text-warning mb-3">
+            <i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i>
+          </div>
+          <p class="text-muted font-italic mb-4">"An extraordinary coastal retreat. The spa treatments and private dining were world-class. We will be returning every summer."</p>
+          <div class="d-flex align-items-center gap-3">
+            <div class="rounded-circle bg-navy text-white d-flex align-items-center justify-content-center fw-bold" style="width: 42px; height: 42px; background: #1A2238;">SC</div>
+            <div>
+              <strong class="d-block text-dark">Sophia Chen</strong>
+              <small class="text-muted">Stayed in Harbor Executive Suite</small>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Location & Inquiries -->
+<section class="py-5" id="contact">
+  <div class="container py-3">
+    <div class="row g-5 align-items-center">
+      <div class="col-lg-6">
+        <span class="text-gold fw-bold text-uppercase small letter-spacing-1">Coastal Location</span>
+        <h2 class="display-6 font-serif mt-1 mb-4">Arrive at Grand Haven</h2>
+        <div class="d-flex gap-3 mb-3">
+          <i class="bi bi-geo-alt-fill text-gold fs-4"></i>
+          <div>
+            <strong class="text-dark">Resort Address</strong>
+            <p class="text-muted mb-0">{{ hotel_address or 'India' }}</p>
+          </div>
+        </div>
+        <div class="d-flex gap-3 mb-3">
+          <i class="bi bi-telephone-fill text-gold fs-4"></i>
+          <div>
+            <strong class="text-dark">Front Desk & Concierge</strong>
+            <p class="text-muted mb-0">{{ hotel_phone }} (Available 24 Hours)</p>
+          </div>
+        </div>
+        <div class="d-flex gap-3 mb-4">
+          <i class="bi bi-envelope-fill text-gold fs-4"></i>
+          <div>
+            <strong class="text-dark">Reservations & Private Events</strong>
+            <p class="text-muted mb-0">{{ hotel_email }}</p>
+          </div>
+        </div>
+        <div class="p-3 bg-white rounded-3 border">
+          <small class="text-muted d-block mb-1"><i class="bi bi-car-front text-gold me-1"></i> Complimentary Valet Service Provided</small>
+          <small class="text-muted d-block"><i class="bi bi-airplane text-gold me-1"></i> 25 minutes from International Airport via Luxury Shuttle</small>
+        </div>
+      </div>
+      <div class="col-lg-6">
+        <div class="gh-card p-4 p-lg-5">
+          <h4 class="font-serif mb-2">Concierge Inquiry</h4>
+          <p class="text-muted small mb-4">Send a direct message to our front-desk concierge for private event bookings or bespoke accommodations.</p>
+          <form onsubmit="event.preventDefault(); alert('Inquiry received! Our concierge will contact you shortly.'); this.reset();">
+            <div class="mb-3">
+              <label class="form-label small text-muted text-uppercase fw-semibold">Your Full Name</label>
+              <input type="text" class="form-control" required placeholder="Lord/Lady, Mr/Ms Full Name">
+            </div>
+            <div class="mb-3">
+              <label class="form-label small text-muted text-uppercase fw-semibold">Email Address</label>
+              <input type="email" class="form-control" required placeholder="guest@example.com">
+            </div>
+            <div class="mb-3">
+              <label class="form-label small text-muted text-uppercase fw-semibold">Message or Special Inquiries</label>
+              <textarea class="form-control" rows="3" placeholder="Tell us about your requested dates, special events, or arrival inquiries..."></textarea>
+            </div>
+            <button type="submit" class="btn btn-gold w-100 py-2">
+              <i class="bi bi-send me-1"></i> Send Concierge Inquiry
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

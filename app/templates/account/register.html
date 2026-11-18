@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+{% block title %}Create Guest Account — {{ hotel_name }}{% endblock %}
+{% block body %}
+<div class="container py-5"><div class="row justify-content-center"><div class="col-lg-7">
+  <div class="gh-card p-4 p-md-5">
+    <h1 class="font-serif h2">Create your guest account</h1>
+    <p class="text-muted">Manage your own reservations and profile. Existing hotel records are linked only after reception verifies your identity.</p>
+    <form method="post" action="{{ url_for('account.register') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="row g-3">
+        <div class="col-md-6"><label class="form-label">First name</label><input class="form-control" name="first_name" maxlength="60" autocomplete="given-name" required></div>
+        <div class="col-md-6"><label class="form-label">Last name</label><input class="form-control" name="last_name" maxlength="60" autocomplete="family-name" required></div>
+        <div class="col-md-6"><label class="form-label">Username</label><input class="form-control" name="username" maxlength="64" autocomplete="username" required></div>
+        <div class="col-md-7"><label class="form-label">Email</label><input class="form-control" type="email" name="email" maxlength="120" autocomplete="email" required></div>
+        <div class="col-md-5"><label class="form-label">Phone number</label><input class="form-control" type="tel" name="phone" inputmode="numeric" pattern="[0-9]{10}" maxlength="10" placeholder="9876543210" autocomplete="tel-national" required></div>
+        <div class="col-md-4"><label class="form-label">City</label><input class="form-control" name="city" maxlength="100" autocomplete="address-level2"></div>
+        <div class="col-md-4"><label class="form-label">State</label><input class="form-control" name="state" maxlength="100" autocomplete="address-level1"></div>
+        <div class="col-md-4"><label class="form-label">Postal code</label><input class="form-control" name="postal_code" maxlength="20" autocomplete="postal-code"></div>
+        <div class="col-md-6"><label class="form-label">Password</label><input class="form-control" type="password" name="password" minlength="10" autocomplete="new-password" required></div>
+        <div class="col-md-6"><label class="form-label">Confirm password</label><input class="form-control" type="password" name="confirm_password" minlength="10" autocomplete="new-password" required></div>
+      </div>
+      <p class="small text-muted mt-3">Your account can see only reservations attached to this verified guest profile. Reservation cancellation follows the policy shown with each booking; refunds are reviewed separately.</p>
+      <button class="btn btn-gold" type="submit">Create account</button>
+      <a class="btn btn-link" href="{{ url_for('auth.login') }}">Already have an account? Sign in</a>
+    </form>
+  </div>
+</div></div></div>
+{% endblock %}

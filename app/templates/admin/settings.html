@@ -1,0 +1,88 @@
+{% extends 'base.html' %}
+
+{% block title %}Property Settings & Policies — {{ hotel_name }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <span class="text-gold fw-bold text-uppercase small letter-spacing-1">Property Administration</span>
+    <h3 class="font-serif text-dark mb-0">Hotel Configuration & Policies</h3>
+    <small class="text-muted">Global parameters, lodging tax rates, operational check-in/out hours, and cancellation terms</small>
+  </div>
+</div>
+
+<div class="row g-4">
+  <div class="col-lg-8">
+    <div class="gh-card p-4 p-md-5">
+      <form action="{{ url_for('admin.settings') }}" method="POST">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <h5 class="font-serif text-dark mb-3"><i class="bi bi-building text-gold me-2"></i> Brand & Property Identity</h5>
+        <div class="mb-3">
+          <label class="form-label small text-muted text-uppercase fw-semibold">Official Property Name *</label>
+          <input type="text" name="hotel_name" class="form-control" value="{{ settings.hotel_name }}" required>
+        </div>
+
+        <div class="row g-3 mb-4">
+          <div class="col-md-6">
+            <label class="form-label small text-muted text-uppercase fw-semibold">Contact Email *</label>
+            <input type="email" name="hotel_email" class="form-control" value="{{ settings.hotel_email }}" required>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label small text-muted text-uppercase fw-semibold">Front Desk Phone (India)</label>
+            <input type="tel" name="hotel_phone" class="form-control" value="{{ settings.hotel_phone }}" placeholder="+91 98765 43210">
+            <div class="form-text">Optional; leave blank until the hotel's verified number is available.</div>
+          </div>
+        </div>
+
+        <h5 class="font-serif text-dark mb-3"><i class="bi bi-cash-coin text-gold me-2"></i> Financial & Tax Configuration</h5>
+        <div class="row g-3 mb-4">
+          <div class="col-md-6">
+            <label class="form-label small text-muted text-uppercase fw-semibold">Operating Currency Code *</label>
+            <input type="text" name="hotel_currency" class="form-control" value="INR" readonly aria-describedby="currencyHelp">
+            <div id="currencyHelp" class="form-text">The hotel operates in Indian Rupees (INR).</div>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label small text-muted text-uppercase fw-semibold">Lodging Tax Rate (Multiplier e.g. 0.12 for 12%) *</label>
+            <input type="number" step="0.01" min="0" max="0.50" name="hotel_tax_rate" class="form-control" value="{{ settings.hotel_tax_rate }}" required>
+            <small class="text-muted">Calculated automatically on all server bookings.</small>
+          </div>
+        </div>
+
+        <h5 class="font-serif text-dark mb-3"><i class="bi bi-clock text-gold me-2"></i> Operating Hours & Policies</h5>
+        <div class="row g-3 mb-3">
+          <div class="col-md-6">
+            <label class="form-label small text-muted text-uppercase fw-semibold">Standard Check-In Time</label>
+            <input type="time" name="default_checkin_time" class="form-control" value="{{ settings.default_checkin_time }}" required>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label small text-muted text-uppercase fw-semibold">Standard Check-Out Time</label>
+            <input type="time" name="default_checkout_time" class="form-control" value="{{ settings.default_checkout_time }}" required>
+          </div>
+        </div>
+
+        <div class="mb-4">
+          <label class="form-label small text-muted text-uppercase fw-semibold">Guest Cancellation Policy</label>
+          <textarea name="cancellation_policy" class="form-control" rows="3">{{ settings.cancellation_policy }}</textarea>
+        </div>
+
+        <button type="submit" class="btn btn-gold px-4 py-2">
+          <i class="bi bi-save me-1"></i> Save Property Configuration
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <div class="col-lg-4">
+    <div class="gh-card p-4">
+      <h6 class="font-serif text-dark mb-3"><i class="bi bi-shield-check text-gold me-2"></i> Configuration Notes</h6>
+      <p class="small text-muted">
+        Settings stored here are persisted in the database and override environment default constants dynamically across the application runtime.
+      </p>
+      <div class="alert alert-info small mb-0">
+        <i class="bi bi-info-circle me-1"></i> Changes to tax rates immediately impact future quote calculations and reservation totals created by staff or online guests.
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

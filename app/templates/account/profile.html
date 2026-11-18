@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+{% block title %}My Profile — {{ hotel_name }}{% endblock %}
+{% block body %}
+<div class="gh-card p-4"><h1 class="font-serif h3">Your guest profile</h1><form method="post" class="row g-3">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <div class="col-md-6"><label class="form-label">First name</label><input class="form-control" name="first_name" maxlength="60" value="{{ guest.first_name }}" required></div>
+  <div class="col-md-6"><label class="form-label">Last name</label><input class="form-control" name="last_name" maxlength="60" value="{{ guest.last_name }}" required></div>
+  <div class="col-md-6"><label class="form-label">Email</label><input class="form-control" value="{{ guest.email }}" disabled><div class="form-text">Contact reception to change the login email.</div></div>
+  <div class="col-md-6"><label class="form-label">Indian mobile</label><input class="form-control" name="phone" value="{{ guest.phone }}" required></div>
+  <div class="col-12"><label class="form-label">Address</label><input class="form-control" name="address" maxlength="255" value="{{ guest.address or '' }}"></div>
+  <div class="col-md-4"><label class="form-label">City</label><input class="form-control" name="city" maxlength="100" value="{{ guest.city or '' }}"></div>
+  <div class="col-md-4"><label class="form-label">State</label><input class="form-control" name="state" maxlength="100" value="{{ guest.state or '' }}"></div>
+  <div class="col-md-4"><label class="form-label">Postal code</label><input class="form-control" name="postal_code" maxlength="20" value="{{ guest.postal_code or '' }}"></div>
+  <div class="col-12"><h2 class="h5 mt-2">Change password (optional)</h2></div>
+  <div class="col-md-4"><label class="form-label">Current password</label><input class="form-control" name="current_password" type="password" autocomplete="current-password"></div>
+  <div class="col-md-4"><label class="form-label">New password</label><input class="form-control" name="new_password" type="password" minlength="10" autocomplete="new-password"></div>
+  <div class="col-md-4"><label class="form-label">Confirm new password</label><input class="form-control" name="confirm_password" type="password" minlength="10" autocomplete="new-password"></div>
+  <div class="col-12"><button class="btn btn-gold">Save profile</button> <a class="btn btn-link" href="{{ url_for('account.dashboard') }}">Back to reservations</a></div>
+</form></div>
+{% endblock %}

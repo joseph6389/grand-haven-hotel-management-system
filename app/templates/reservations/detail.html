@@ -1,0 +1,333 @@
+{% extends 'base.html' %}
+
+{% block title %}Reservation Folio — {{ reservation.confirmation_number }} — {{ hotel_name }}{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+  <div>
+    <a href="{{ url_for('reservations.index') }}" class="text-muted small text-decoration-none mb-1 d-inline-block">
+      <i class="bi bi-arrow-left"></i> Back to Reservations
+    </a>
+    <div class="d-flex align-items-center gap-2">
+      <h3 class="font-serif text-dark mb-0">Folio: {{ reservation.confirmation_number }}</h3>
+      <span class="badge {{ reservation.status|status_badge }}">{{ reservation.status|replace('_', ' ')|title }}</span>
+      <span class="badge {{ reservation.payment_status|status_badge }}">{{ reservation.payment_status|replace('_', ' ')|title }}</span>
+    </div>
+    <small class="text-muted">Created on {{ reservation.created_at|india_datetime }} by {{ reservation.created_by.full_name if reservation.created_by else 'Guest Self-Booking' }}</small>
+  </div>
+
+  <div class="d-flex flex-wrap gap-2">
+    {% if reservation.status in ['confirmed', 'pending'] %}
+      <a href="{{ url_for('reservations.edit', reservation_id=reservation.id) }}" class="btn btn-outline-primary btn-sm"><i class="bi bi-pencil me-1"></i> Edit Reservation</a>
+    {% endif %}
+    <a href="{{ url_for('reservations.voucher', reservation_id=reservation.id) }}" target="_blank" class="btn btn-outline-secondary btn-sm">
+      <i class="bi bi-printer me-1"></i> Print Voucher
+    </a>
+
+    <!-- Status Actions -->
+    {% if reservation.status in ['confirmed', 'pending'] %}
+      <form action="{{ url_for('reservations.check_in', reservation_id=reservation.id) }}" method="POST" class="d-inline">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="btn btn-success btn-sm">
+          <i class="bi bi-box-arrow-in-right me-1"></i> Check In Guest
+        </button>
+      </form>
+      <button class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#cancelModal">
+        <i class="bi bi-x-circle me-1"></i> Cancel Booking
+      </button>
+    {% elif reservation.status == 'checked_in' %}
+      <form action="{{ url_for('reservations.check_out', reservation_id=reservation.id) }}" method="POST" class="d-inline">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="btn btn-danger btn-sm">
+          <i class="bi bi-box-arrow-right me-1"></i> Check Out Guest
+        </button>
+      </form>
+    {% endif %}
+
+    {% if reservation.outstanding_balance > 0 %}
+      <button class="btn btn-gold btn-sm" data-bs-toggle="modal" data-bs-target="#recordPaymentModal">
+        <i class="bi bi-credit-card me-1"></i> Record Payment
+      </button>
+    {% endif %}
+  </div>
+</div>
+
+<div class="row g-4 mb-4">
+  <!-- Left Side: Guest Info & Allocated Rooms -->
+  <div class="col-lg-8">
+
+    <!-- Stay & Guest Info Card -->
+    <div class="gh-card p-4 mb-4">
+      <div class="row g-3">
+        <div class="col-md-6 border-end">
+          <h6 class="text-gold text-uppercase fw-bold small mb-2"><i class="bi bi-person me-1"></i> Guest Folio Information</h6>
+          <p class="fw-bold fs-5 text-dark mb-1">{{ reservation.guest.full_name }}</p>
+          <p class="text-muted small mb-1"><i class="bi bi-envelope me-1"></i> {{ reservation.guest.email }}</p>
+          <p class="text-muted small mb-1"><i class="bi bi-telephone me-1"></i> {{ reservation.guest.phone }}</p>
+          <p class="text-muted small mb-0"><i class="bi bi-geo-alt me-1"></i> {{ reservation.guest.city or '' }}{% if reservation.guest.city and reservation.guest.country %}, {% endif %}{{ reservation.guest.country or 'N/A' }}</p>
+        </div>
+        <div class="col-md-6 ps-md-4">
+          <h6 class="text-gold text-uppercase fw-bold small mb-2"><i class="bi bi-calendar me-1"></i> Stay Schedule</h6>
+          <p class="mb-1 text-dark"><strong>Check-In:</strong> {{ reservation.check_in_date|india_date }}</p>
+          <p class="mb-1 text-dark"><strong>Check-Out:</strong> {{ reservation.check_out_date|india_date }}</p>
+          <p class="mb-1 text-muted small"><strong>Total Nights:</strong> {{ reservation.total_nights }} Night{% if reservation.total_nights > 1 %}s{% endif %}</p>
+          <p class="mb-0 text-muted small"><strong>Occupancy:</strong> {{ reservation.adults_count }} Adult(s){% if reservation.children_count > 0 %}, {{ reservation.children_count }} Child(ren){% endif %}</p>
+        </div>
+      </div>
+      {% if reservation.special_requests %}
+        <div class="mt-3 pt-3 border-top">
+          <strong class="d-block text-dark small text-uppercase">Special Requests:</strong>
+          <p class="text-muted small mb-0">{{ reservation.special_requests }}</p>
+        </div>
+      {% endif %}
+    </div>
+
+    <!-- Allocated Rooms Card -->
+    <div class="gh-card mb-4">
+      <div class="gh-card-header">
+        <h6 class="font-serif text-dark mb-0"><i class="bi bi-door-open text-gold me-2"></i> Allocated Rooms ({{ reservation.room_allocations|length }})</h6>
+      </div>
+      <div class="table-responsive">
+        <table class="table gh-table mb-0">
+          <thead>
+            <tr>
+              <th>Room</th>
+              <th>Classification</th>
+              <th>Floor</th>
+              <th class="text-end">Nightly Rate</th>
+              <th class="text-end">Nights</th>
+              <th class="text-end">Subtotal</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for alloc in reservation.room_allocations %}
+              <tr>
+                <td><strong>Room {{ alloc.room.room_number }}</strong></td>
+                <td>{{ alloc.room.room_type.name }}</td>
+                <td><span class="badge bg-light text-dark border">Floor {{ alloc.room.floor }}</span></td>
+                <td class="text-end">₹{{ "{:,.2f}".format(alloc.nightly_rate) }}</td>
+                <td class="text-end">{{ alloc.nights }}</td>
+                <td class="text-end fw-bold text-dark">₹{{ "{:,.2f}".format(alloc.subtotal) }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Payments Ledger Card -->
+    <div class="gh-card mb-4">
+      <div class="gh-card-header">
+        <h6 class="font-serif text-dark mb-0"><i class="bi bi-credit-card text-gold me-2"></i> Payments & Transactions</h6>
+        {% if reservation.outstanding_balance > 0 %}
+          <button class="btn btn-outline-gold btn-sm py-1 px-2" data-bs-toggle="modal" data-bs-target="#recordPaymentModal">
+            <i class="bi bi-plus"></i> Add Payment
+          </button>
+        {% endif %}
+      </div>
+      <div class="table-responsive">
+        <table class="table gh-table mb-0">
+          <thead>
+            <tr>
+              <th>Reference</th>
+              <th>Amount</th>
+              <th>Method</th>
+              <th>Status</th>
+              <th>Date</th>
+              <th class="text-end">Receipt</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% if payments %}
+              {% for pay in payments %}
+                <tr>
+                  <td><span class="font-monospace fw-semibold">{{ pay.payment_reference }}</span></td>
+                  <td><span class="fw-bold text-dark">₹{{ "{:,.2f}".format(pay.amount) }}</span></td>
+                  <td><span class="badge bg-light text-dark border">{{ pay.payment_method|replace('_', ' ')|title }}</span></td>
+                  <td><span class="badge {{ pay.payment_status|status_badge }}">{{ 'Partial refund recorded (ledger)' if pay.payment_status == 'partially_refunded' else 'Refund recorded (ledger)' if pay.payment_status == 'refunded' else pay.payment_status|title }}</span></td>
+                  <td><small class="text-muted">{{ pay.created_at|india_datetime }}</small></td>
+                  <td class="text-end">
+                    <a href="{{ url_for('payments.receipt', payment_id=pay.id) }}" target="_blank" class="btn btn-sm btn-outline-secondary py-0 px-2" title="Print Receipt">
+                      <i class="bi bi-receipt"></i>
+                    </a>
+                  </td>
+                </tr>
+              {% endfor %}
+            {% else %}
+              <tr>
+                <td colspan="6" class="text-center py-4 text-muted">No payments recorded for this folio yet.</td>
+              </tr>
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Status History Audit Trail -->
+    <div class="gh-card">
+      <div class="gh-card-header">
+        <h6 class="font-serif text-dark mb-0"><i class="bi bi-clock-history text-gold me-2"></i> Status Transition Audit Trail</h6>
+      </div>
+      <div class="p-4">
+        {% if status_history %}
+          <ul class="list-group list-group-flush">
+            {% for item in status_history %}
+              <li class="list-group-item px-0 py-2 d-flex justify-content-between align-items-center">
+                <div>
+                  <span class="badge bg-secondary me-2">{{ item.previous_status or 'New' }}</span> &rarr;
+                  <span class="badge {{ item.new_status|status_badge }} ms-2">{{ item.new_status|replace('_', ' ')|title }}</span>
+                  <small class="text-muted d-block mt-1">{{ item.reason or 'No remarks recorded' }}</small>
+                  {% if item.request_source %}
+                  <small class="text-muted d-block">Request source: {{ 'Phone' if item.request_source == 'phone' else 'Guest account' }} · Requested by: {{ item.requested_by_guest.full_name if item.requested_by_guest else 'Verified guest' }} · Refund: {{ (item.refund_status or 'pending review')|replace('_',' ')|title }}{% if item.cancellation_fee is not none %} · Fee: ₹{{ '{:,.2f}'.format(item.cancellation_fee) }}{% endif %}</small>
+                  {% endif %}
+                </div>
+                <div class="text-end">
+                  <small class="text-muted d-block">{{ item.changed_at|india_datetime }}</small>
+                  <small class="text-muted">By: {{ item.changed_by.username if item.changed_by else 'System / Self' }}</small>
+                </div>
+              </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <p class="text-muted small mb-0">No historical status records.</p>
+        {% endif %}
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Right Side: Financial Breakdown Summary -->
+  <div class="col-lg-4">
+
+<div class="gh-card p-4">
+
+      <h5 class="font-serif text-dark mb-3"><i class="bi bi-calculator text-gold me-2"></i> Financial Ledger</h5>
+
+      <div class="d-flex justify-content-between small text-muted mb-2">
+        <span>Room Charges ({{ reservation.total_nights }} nights):</span>
+        <span class="fw-semibold text-dark">₹{{ "{:,.2f}".format(reservation.room_charges) }}</span>
+      </div>
+
+      <div class="d-flex justify-content-between small text-muted mb-2">
+        <span>Lodging Tax (12%):</span>
+        <span class="fw-semibold text-dark">₹{{ "{:,.2f}".format(reservation.tax_amount) }}</span>
+      </div>
+
+      {% if reservation.discount_amount > 0 %}
+      <div class="d-flex justify-content-between small text-success mb-2">
+        <span>Special Discount:</span>
+        <span class="fw-semibold">-₹{{ "{:,.2f}".format(reservation.discount_amount) }}</span>
+      </div>
+      {% endif %}
+
+      <hr class="my-2">
+
+      <div class="d-flex justify-content-between fw-bold text-dark fs-5 mb-2">
+        <span>Total Folio Amount:</span>
+        <span class="text-gold">₹{{ "{:,.2f}".format(reservation.total_amount) }}</span>
+      </div>
+
+      <div class="d-flex justify-content-between small text-muted mb-3">
+        <span>Paid to Date:</span>
+        <span class="fw-semibold text-success">₹{{ "{:,.2f}".format(reservation.paid_amount) }}</span>
+      </div>
+
+      <div class="p-3 rounded-3 {% if reservation.outstanding_balance > 0 %}bg-danger bg-opacity-10 border border-danger{% else %}bg-success bg-opacity-10 border border-success{% endif %} text-center">
+        <span class="small text-uppercase fw-bold d-block {% if reservation.outstanding_balance > 0 %}text-danger{% else %}text-success{% endif %}">
+          {% if reservation.outstanding_balance > 0 %}Outstanding Balance Due{% else %}Balance Fully Settled{% endif %}
+        </span>
+        <span class="fs-4 fw-bold {% if reservation.outstanding_balance > 0 %}text-danger{% else %}text-success{% endif %}">
+          ₹{{ "{:,.2f}".format(reservation.outstanding_balance) }}
+        </span>
+      </div>
+
+      {% if reservation.outstanding_balance > 0 %}
+        <button class="btn btn-gold w-100 mt-3" data-bs-toggle="modal" data-bs-target="#recordPaymentModal">
+          <i class="bi bi-credit-card me-1"></i> Pay Balance Now
+        </button>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- Cancel Reservation Modal -->
+<div class="modal fade" id="cancelModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header bg-danger text-white">
+        <h5 class="modal-title font-serif"><i class="bi bi-exclamation-triangle me-2"></i> Cancel Reservation</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <form action="{{ url_for('reservations.cancel', reservation_id=reservation.id) }}" method="POST">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="modal-body p-4">
+          <p class="text-dark">Record a verified cancellation request made by phone for <strong>{{ reservation.confirmation_number }}</strong>. Confirm the caller using the reservation number, full name, email, and mobile recorded for this guest.</p>
+          <input type="hidden" name="confirmation_number" value="{{ reservation.confirmation_number }}">
+          <div class="mb-3"><label class="form-label small fw-semibold">Guest full name (verified)</label><input class="form-control" name="verified_guest_name" required autocomplete="off"></div>
+          <div class="mb-3"><label class="form-label small fw-semibold">Guest email (verified)</label><input class="form-control" type="email" name="verified_guest_email" required autocomplete="off"></div>
+          <div class="mb-3"><label class="form-label small fw-semibold">Guest mobile (verified)</label><input class="form-control" type="tel" name="verified_guest_phone" required autocomplete="off" placeholder="+91 98765 43210"></div>
+          <div class="mb-3">
+            <label class="form-label small text-muted text-uppercase fw-semibold">Guest's cancellation request *</label>
+            <input type="text" name="reason" maxlength="255" class="form-control" required placeholder="Reason given by the guest, or 'Guest requested cancellation'.">
+          </div>
+          <p class="small text-muted">A ₹500 cancellation fee applies at or within 48 hours before the configured local check-in time, capped at the amount recorded as paid. The acting staff account is recorded separately from the verified guest requester.</p><p class="small text-muted mb-0">Any remaining refund requires staff review. A hotel-ledger entry does not confirm an external payout.</p>
+        </div>
+        <div class="modal-footer bg-light">
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Keep Booking</button>
+          <button type="submit" class="btn btn-danger btn-sm">Confirm Cancellation</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Record Payment Modal -->
+<div class="modal fade" id="recordPaymentModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header bg-navy text-white" style="background-color: #1A2238;">
+        <h5 class="modal-title font-serif"><i class="bi bi-credit-card text-gold me-2"></i> Settle Folio Payment</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <form action="{{ url_for('payments.process') }}" method="POST">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="reservation_id" value="{{ reservation.id }}">
+
+        <div class="modal-body p-4">
+          <div class="p-3 bg-light rounded-3 mb-3 border">
+            <div class="d-flex justify-content-between small text-muted">
+              <span>Outstanding Due:</span>
+              <span class="text-danger fw-bold fs-6">₹{{ "{:,.2f}".format(reservation.outstanding_balance) }}</span>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label small text-muted text-uppercase fw-semibold">Payment Amount (₹) *</label>
+            <input type="number" name="amount" step="0.01" min="0.01" max="{{ reservation.outstanding_balance }}" class="form-control" value="{{ reservation.outstanding_balance }}" required>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label small text-muted text-uppercase fw-semibold">Payment Method *</label>
+            <select name="payment_method" class="form-select">
+              <option value="simulation" selected>Simulated Gateway Test</option>
+              <option value="credit_card">Credit Card (Simulation)</option>
+              <option value="cash">Front Desk Cash</option>
+              <option value="bank_transfer">Wire Transfer</option>
+            </select>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label small text-muted text-uppercase fw-semibold">Payment Notes / Reference</label>
+            <input type="text" name="notes" class="form-control" placeholder="Optional notes, terminal auth code...">
+          </div>
+        </div>
+
+        <div class="modal-footer bg-light">
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-gold btn-sm">Process Payment</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

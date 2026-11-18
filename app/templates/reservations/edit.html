@@ -1,0 +1,56 @@
+{% extends 'base.html' %}
+
+{% block title %}Edit Reservation — {{ reservation.confirmation_number }} — {{ hotel_name }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <a href="{{ url_for('reservations.detail', reservation_id=reservation.id) }}" class="text-muted small text-decoration-none mb-1 d-inline-block">
+      <i class="bi bi-arrow-left"></i> Back to Reservation
+    </a>
+    <h3 class="font-serif text-dark mb-0">Edit Reservation</h3>
+    <small class="text-muted">{{ reservation.confirmation_number }} · {{ reservation.guest.full_name }}</small>
+  </div>
+</div>
+
+{% if error_message %}<div class="alert alert-warning" role="alert">{{ error_message }}</div>{% endif %}
+
+<form action="{{ url_for('reservations.edit', reservation_id=reservation.id) }}" method="POST">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <div class="row g-4">
+    <div class="col-lg-8">
+      <section class="gh-card p-4 mb-4">
+        <h5 class="font-serif text-dark mb-3">Guest and Stay</h5>
+        <p class="mb-3"><strong>{{ reservation.guest.full_name }}</strong><br><span class="text-muted">{{ reservation.guest.email }}</span><br><span class="text-muted">Guest profile is retained.</span></p>
+        <div class="row g-3">
+          <div class="col-md-6"><label class="form-label" for="edit_check_in">Check-in date *</label><input class="form-control" type="date" id="edit_check_in" name="check_in" value="{{ form_values.check_in }}" required></div>
+          <div class="col-md-6"><label class="form-label" for="edit_check_out">Check-out date *</label><input class="form-control" type="date" id="edit_check_out" name="check_out" value="{{ form_values.check_out }}" required></div>
+          <div class="col-md-6"><label class="form-label" for="edit_adults">Adults *</label><input class="form-control" type="number" id="edit_adults" name="adults" value="{{ form_values.adults }}" min="1" required></div>
+          <div class="col-md-6"><label class="form-label" for="edit_children">Children</label><input class="form-control" type="number" id="edit_children" name="children" value="{{ form_values.children }}" min="0" required></div>
+        </div>
+      </section>
+
+      <section class="gh-card p-4">
+        <h5 class="font-serif text-dark mb-2">Room allocation *</h5>
+        <p class="small text-muted">Choose one or more operational rooms with enough combined capacity. Availability is checked again when saved.</p>
+        {% if rooms %}<div class="row g-2">
+          {% for room in rooms %}<div class="col-md-6">
+            <label class="border rounded p-3 d-flex gap-2 h-100 {% if not room.is_operational %}text-muted{% endif %}">
+              <input class="form-check-input mt-1" type="checkbox" name="room_ids" value="{{ room.id }}" {% if room.id in selected_room_ids and room.is_operational %}checked{% endif %} {% if not room.is_operational %}disabled{% endif %}>
+              <span><strong>{{ room.room_number }}</strong> · {{ room.room_type.name if room.room_type else 'Room type unavailable' }}<br><small>Capacity {{ room.capacity }} · {{ room.formatted_price }} / night{% if not room.is_operational %} · Not operational; select a replacement{% endif %}</small></span>
+            </label>
+          </div>{% endfor %}
+        </div>{% else %}<div class="alert alert-info mb-0">No operational rooms are available for these dates.</div>{% endif %}
+      </section>
+    </div>
+
+    <div class="col-lg-4"><section class="gh-card p-4">
+      <h5 class="font-serif text-dark mb-3">Folio summary</h5>
+      <p class="small text-muted">The stay total is recalculated using current room rates and hotel tax. Recorded payments and payment history are preserved. The revised total cannot be less than the amount already paid.</p>
+      <dl class="row small"><dt class="col-7">Current total</dt><dd class="col-5 text-end">{{ reservation.total_amount|currency }}</dd><dt class="col-7">Recorded payments</dt><dd class="col-5 text-end">{{ reservation.paid_amount|currency }}</dd></dl>
+      <button class="btn btn-gold w-100" type="submit"><i class="bi bi-check2-circle me-1"></i> Save Reservation</button>
+      <a class="btn btn-outline-secondary w-100 mt-2" href="{{ url_for('reservations.detail', reservation_id=reservation.id) }}">Cancel</a>
+    </section></div>
+  </div>
+</form>
+{% endblock %}

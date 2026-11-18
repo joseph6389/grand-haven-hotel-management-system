@@ -1,0 +1,172 @@
+{% extends 'base.html' %}
+
+{% block title %}Guest Directory — {{ hotel_name }}{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+  <div>
+    <span class="text-gold fw-bold text-uppercase small letter-spacing-1">Guest Relations</span>
+    <h3 class="font-serif text-dark mb-0">Guest Profiles & Folios</h3>
+    <small class="text-muted">Manage guest contacts, identification records, and loyalty booking history</small>
+  </div>
+  <button class="btn btn-gold btn-sm d-flex align-items-center gap-1 shadow-sm" data-bs-toggle="modal" data-bs-target="#addGuestModal">
+    <i class="bi bi-person-plus"></i> Register New Guest
+  </button>
+</div>
+
+<!-- Search Bar -->
+<div class="gh-card p-3 mb-4">
+  <form action="{{ url_for('guests.index') }}" method="GET" class="row g-2 align-items-center">
+    <div class="col-md-10">
+      <div class="input-group">
+        <span class="input-group-text bg-light border-end-0"><i class="bi bi-search text-gold"></i></span>
+        <input type="text" name="search" class="form-control border-start-0" placeholder="Search guests by name, email address, or phone number..." value="{{ search_query }}">
+      </div>
+    </div>
+    <div class="col-md-2 d-flex gap-1">
+      <button type="submit" class="btn btn-navy w-100 py-2">Search</button>
+      {% if search_query %}
+        <a href="{{ url_for('guests.index') }}" class="btn btn-outline-secondary" title="Clear Search"><i class="bi bi-x-lg"></i></a>
+      {% endif %}
+    </div>
+  </form>
+</div>
+
+<!-- Guest Directory Table -->
+<div class="gh-card">
+  <div class="table-responsive">
+    <table class="table gh-table mb-0">
+      <thead>
+        <tr>
+          <th>Full Legal Name</th>
+          <th>Contact Details</th>
+          <th>Identification</th>
+          <th>Location</th>
+          <th>Reservations</th>
+          <th>Registered On</th>
+          <th class="text-end">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if guests %}
+          {% for guest in guests %}
+            <tr>
+              <td>
+                <a href="{{ url_for('guests.detail', guest_id=guest.id) }}" class="fw-bold text-dark text-decoration-none">
+                  {{ guest.full_name }}
+                </a>
+              </td>
+              <td>
+                <span class="d-block small text-dark"><i class="bi bi-envelope text-gold me-1"></i> {{ guest.email }}</span>
+                <small class="text-muted"><i class="bi bi-telephone text-gold me-1"></i> {{ guest.phone }}</small>
+              </td>
+              <td>
+                {% if guest.identification_type %}
+                  <span class="badge bg-light text-dark border small">{{ guest.identification_type }}</span>
+                  <small class="text-muted font-monospace d-block">{{ guest.identification_number }}</small>
+                {% else %}
+                  <span class="text-muted small">&mdash;</span>
+                {% endif %}
+              </td>
+              <td>
+                <span class="small text-dark">{{ guest.city or '' }}{% if guest.city and guest.country %}, {% endif %}{{ guest.country or 'N/A' }}</span>
+              </td>
+              <td>
+                <span class="badge bg-gold-light text-gold-hover border border-warning">
+                  {{ guest.total_bookings }} Booking{% if guest.total_bookings != 1 %}s{% endif %}
+                </span>
+              </td>
+              <td>
+                <small class="text-muted">{{ guest.created_at|india_datetime }}</small>
+              </td>
+              <td class="text-end">
+                <a href="{{ url_for('guests.detail', guest_id=guest.id) }}" class="btn btn-sm btn-outline-secondary py-1 px-2">
+                  <i class="bi bi-person-lines-fill me-1"></i> View Folio
+                </a>
+              </td>
+            </tr>
+          {% endfor %}
+        {% else %}
+          <tr>
+            <td colspan="7" class="text-center py-5 text-muted">
+              <i class="bi bi-people fs-1 d-block mb-2 text-secondary"></i>
+              No guests found matching your search.
+            </td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Add Guest Modal -->
+<div class="modal fade" id="addGuestModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header bg-navy text-white" style="background-color: #1A2238;">
+        <h5 class="modal-title font-serif"><i class="bi bi-person-plus text-gold me-2"></i> Register Guest Profile</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <form action="{{ url_for('guests.create') }}" method="POST">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="modal-body p-4">
+          <div class="row g-2 mb-3">
+            <div class="col-6">
+              <label class="form-label small text-muted text-uppercase fw-semibold">First Name *</label>
+              <input type="text" name="first_name" class="form-control" required placeholder="Elena">
+            </div>
+            <div class="col-6">
+              <label class="form-label small text-muted text-uppercase fw-semibold">Last Name *</label>
+              <input type="text" name="last_name" class="form-control" required placeholder="Rostova">
+            </div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label small text-muted text-uppercase fw-semibold">Email Address *</label>
+            <input type="email" name="email" class="form-control" required placeholder="guest@example.com">
+          </div>
+          <div class="mb-3">
+            <label class="form-label small text-muted text-uppercase fw-semibold">Phone Number *</label>
+            <input type="tel" name="phone" class="form-control" required placeholder="+91 98765 43210">
+          </div>
+          <div class="row g-2 mb-3">
+            <div class="col-6">
+              <label class="form-label small text-muted text-uppercase fw-semibold">ID Type</label>
+              <select name="identification_type" class="form-select">
+                <option value="Passport" selected>Passport</option>
+                <option value="Driver License">Driver's License</option>
+                <option value="National ID">National ID Card</option>
+              </select>
+            </div>
+            <div class="col-6">
+              <label class="form-label small text-muted text-uppercase fw-semibold">ID Document #</label>
+              <input type="text" name="identification_number" class="form-control" placeholder="P9841203A">
+            </div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label small text-muted text-uppercase fw-semibold">Address</label>
+            <input type="text" name="address" class="form-control" placeholder="Street address...">
+          </div>
+          <div class="row g-2 mb-3">
+            <div class="col-6">
+              <label class="form-label small text-muted text-uppercase fw-semibold">City</label>
+              <input type="text" name="city" class="form-control" placeholder="e.g. Bengaluru">
+            </div>
+            <div class="col-6">
+              <label class="form-label small text-muted text-uppercase fw-semibold">Country</label>
+              <input type="text" name="country" class="form-control" value="India">
+            </div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label small text-muted text-uppercase fw-semibold">Guest Preferences & Notes</label>
+            <textarea name="notes" class="form-control" rows="2" placeholder="VIP guest notes, preferences..."></textarea>
+          </div>
+        </div>
+        <div class="modal-footer bg-light">
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-gold btn-sm">Save Guest</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

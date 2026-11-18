@@ -1,0 +1,198 @@
+{% extends 'base.html' %}
+
+{% block title %}Reservations Management — {{ hotel_name }}{% endblock %}
+
+{% block extra_js %}
+<script>
+  // Bootstrap dropdowns inside .table-responsive can be clipped by its overflow.
+  // Temporarily allow overflow while a reservation action menu is open.
+  document.querySelectorAll('.reservation-table-responsive .dropdown').forEach(function (dropdown) {
+    const wrapper = dropdown.closest('.reservation-table-responsive');
+    let previousOverflowX = '';
+    let previousOverflowY = '';
+
+    dropdown.addEventListener('show.bs.dropdown', function () {
+      if (!wrapper) return;
+      previousOverflowX = wrapper.style.overflowX;
+      previousOverflowY = wrapper.style.overflowY;
+      wrapper.style.overflowX = 'visible';
+      wrapper.style.overflowY = 'visible';
+    });
+
+    dropdown.addEventListener('hidden.bs.dropdown', function () {
+      if (!wrapper) return;
+      wrapper.style.overflowX = previousOverflowX;
+      wrapper.style.overflowY = previousOverflowY;
+    });
+  });
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+  <div>
+    <span class="text-gold fw-bold text-uppercase small letter-spacing-1">Front Desk Operations</span>
+    <h3 class="font-serif text-dark mb-0">Reservations & Folios</h3>
+    <small class="text-muted">Manage guest bookings, check-in/out workflows, and room allocations</small>
+  </div>
+  <a href="{{ url_for('reservations.create') }}" class="btn btn-gold btn-sm d-flex align-items-center gap-1 shadow-sm">
+    <i class="bi bi-plus-circle"></i> Create Reservation
+  </a>
+</div>
+
+<!-- Status Filters Pill Row -->
+<div class="d-flex flex-wrap gap-2 mb-4">
+  <a href="{{ url_for('reservations.index') }}" class="btn btn-sm {% if not selected_status %}btn-navy{% else %}btn-outline-secondary bg-white{% endif %}">
+    All ({{ status_counts.all }})
+  </a>
+  <a href="{{ url_for('reservations.index', status='confirmed') }}" class="btn btn-sm {% if selected_status == 'confirmed' %}btn-success text-white{% else %}btn-outline-success bg-white{% endif %}">
+    Confirmed ({{ status_counts.confirmed }})
+  </a>
+  <a href="{{ url_for('reservations.index', status='checked_in') }}" class="btn btn-sm {% if selected_status == 'checked_in' %}btn-primary text-white{% else %}btn-outline-primary bg-white{% endif %}">
+    Checked-In ({{ status_counts.checked_in }})
+  </a>
+  <a href="{{ url_for('reservations.index', status='checked_out') }}" class="btn btn-sm {% if selected_status == 'checked_out' %}btn-secondary text-white{% else %}btn-outline-secondary bg-white{% endif %}">
+    Checked-Out ({{ status_counts.checked_out }})
+  </a>
+  <a href="{{ url_for('reservations.index', status='cancelled') }}" class="btn btn-sm {% if selected_status == 'cancelled' %}btn-danger text-white{% else %}btn-outline-danger bg-white{% endif %}">
+    Cancelled ({{ status_counts.cancelled }})
+  </a>
+</div>
+
+<!-- Search & Date Filter Bar -->
+<div class="gh-card p-3 mb-4">
+  <form action="{{ url_for('reservations.index') }}" method="GET" class="row g-2 align-items-center">
+    {% if selected_status %}<input type="hidden" name="status" value="{{ selected_status }}">{% endif %}
+    <div class="col-md-5">
+      <div class="input-group">
+        <span class="input-group-text bg-light border-end-0"><i class="bi bi-search text-gold"></i></span>
+        <input type="text" name="search" class="form-control border-start-0" placeholder="Search by confirmation #, guest name, or email..." value="{{ search_query }}">
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="input-group">
+        <span class="input-group-text bg-light border-end-0 small">From:</span>
+        <input type="date" name="date_from" class="form-control border-start-0" value="{{ date_from }}">
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="input-group">
+        <span class="input-group-text bg-light border-end-0 small">To:</span>
+        <input type="date" name="date_to" class="form-control border-start-0" value="{{ date_to }}">
+      </div>
+    </div>
+    <div class="col-md-1 d-flex gap-1">
+      <button type="submit" class="btn btn-navy w-100 py-2"><i class="bi bi-filter"></i></button>
+      {% if search_query or date_from or date_to or selected_status %}
+        <a href="{{ url_for('reservations.index') }}" class="btn btn-outline-secondary" title="Clear All Filters"><i class="bi bi-x-lg"></i></a>
+      {% endif %}
+    </div>
+  </form>
+</div>
+
+<!-- Reservations Table -->
+<div class="gh-card">
+  <div class="table-responsive reservation-table-responsive">
+    <table class="table gh-table mb-0">
+      <thead>
+        <tr>
+          <th>Confirmation #</th>
+          <th>Guest Name</th>
+          <th>Stay Dates</th>
+          <th>Rooms Allocated</th>
+          <th>Total / Balance</th>
+          <th>Status</th>
+          <th class="text-end">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if reservations %}
+          {% for res in reservations %}
+            <tr>
+              <td>
+                <a href="{{ url_for('reservations.detail', reservation_id=res.id) }}" class="fw-bold text-dark font-monospace text-decoration-none">
+                  {{ res.confirmation_number }}
+                </a>
+                <small class="text-muted d-block">{{ res.created_at|india_datetime }}</small>
+              </td>
+              <td>
+                <strong class="text-dark d-block">{{ res.guest.full_name }}</strong>
+                <small class="text-muted"><i class="bi bi-envelope me-1"></i> {{ res.guest.email }}</small>
+              </td>
+              <td>
+                <span class="small text-dark">{{ res.check_in_date|india_date }} &rarr; {{ res.check_out_date|india_date }}</span>
+                <small class="text-muted d-block">{{ res.total_nights }} Night{% if res.total_nights > 1 %}s{% endif %} &bull; {{ res.adults_count }}A{% if res.children_count > 0 %}, {{ res.children_count }}C{% endif %}</small>
+              </td>
+              <td>
+                {% for alloc in res.room_allocations %}
+                  <span class="badge bg-light text-dark border me-1">{{ alloc.room.room_number }}</span>
+                {% endfor %}
+              </td>
+              <td>
+                <span class="fw-bold text-dark">{{ res.total_amount|currency }}</span>
+                {% if res.outstanding_balance > 0 %}
+                  <small class="text-danger d-block fw-semibold">Due: {{ res.outstanding_balance|currency }}</small>
+                {% else %}
+                  <small class="text-success d-block">Settled</small>
+                {% endif %}
+              </td>
+              <td>
+                <span class="badge {{ res.status|status_badge }}">{{ res.status|replace('_', ' ')|title }}</span>
+              </td>
+              <td class="text-end">
+                <div class="dropdown d-inline">
+                  <button class="btn btn-sm btn-outline-secondary dropdown-toggle py-1 px-2" type="button" data-bs-toggle="dropdown" data-bs-boundary="viewport" data-bs-display="static">
+                    Action
+                  </button>
+                  <ul class="dropdown-menu dropdown-menu-end shadow">
+                    <li>
+                      <a class="dropdown-item" href="{{ url_for('reservations.detail', reservation_id=res.id) }}">
+                        <i class="bi bi-file-earmark-text me-2"></i> View Folio Details
+                      </a>
+                    </li>
+                    {% if res.status in ['confirmed', 'pending'] %}
+                      <li><a class="dropdown-item" href="{{ url_for('reservations.edit', reservation_id=res.id) }}"><i class="bi bi-pencil me-2"></i> Edit Reservation</a></li>
+                    {% endif %}
+                    <li>
+                      <a class="dropdown-item" href="{{ url_for('reservations.voucher', reservation_id=res.id) }}" target="_blank">
+                        <i class="bi bi-printer me-2"></i> Print Voucher
+                      </a>
+                    </li>
+                    {% if res.status in ['confirmed', 'pending'] %}
+                      <li><hr class="dropdown-divider"></li>
+                      <li>
+                        <form action="{{ url_for('reservations.check_in', reservation_id=res.id) }}" method="POST">
+                          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                          <button type="submit" class="dropdown-item text-success"><i class="bi bi-box-arrow-in-right me-2"></i> Check In Guest</button>
+                        </form>
+                      </li>
+                      <li>
+                        <a href="{{ url_for('reservations.detail', reservation_id=res.id) }}#cancelModal" class="dropdown-item text-danger"><i class="bi bi-x-circle me-2"></i> Open verified cancellation</a>
+                      </li>
+                    {% elif res.status == 'checked_in' %}
+                      <li><hr class="dropdown-divider"></li>
+                      <li>
+                        <form action="{{ url_for('reservations.check_out', reservation_id=res.id) }}" method="POST">
+                          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                          <button type="submit" class="dropdown-item text-danger"><i class="bi bi-box-arrow-right me-2"></i> Check Out Guest</button>
+                        </form>
+                      </li>
+                    {% endif %}
+                  </ul>
+                </div>
+              </td>
+            </tr>
+          {% endfor %}
+        {% else %}
+          <tr>
+            <td colspan="7" class="text-center py-5 text-muted">
+              <i class="bi bi-calendar-x fs-1 d-block mb-2 text-secondary"></i>
+              No reservations found matching your criteria.
+            </td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

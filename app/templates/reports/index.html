@@ -1,0 +1,170 @@
+{% extends 'base.html' %}
+
+{% block title %}Hospitality Analytics & Business Intelligence — {{ hotel_name }}{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+  <div>
+    <span class="text-gold fw-bold text-uppercase small letter-spacing-1">Business Intelligence</span>
+    <h3 class="font-serif text-dark mb-0">Financial & Occupancy Reports</h3>
+    <small class="text-muted">Database aggregated analytics, room category performance, and audit ledgers</small>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="{{ url_for('reports.export_csv', type='reservations') }}" class="btn btn-navy btn-sm d-flex align-items-center gap-1">
+      <i class="bi bi-filetype-csv"></i> Export Reservations CSV
+    </a>
+    <a href="{{ url_for('reports.export_csv', type='payments') }}" class="btn btn-outline-gold btn-sm d-flex align-items-center gap-1">
+      <i class="bi bi-filetype-csv"></i> Export Payments CSV
+    </a>
+  </div>
+</div>
+
+<!-- KPI Summary Highlights -->
+<div class="row g-3 mb-4">
+  <div class="col-md-3 col-6">
+    <div class="p-3 bg-white rounded-3 border">
+      <div class="kpi-label">Current Month Revenue</div>
+      <div class="fs-4 fw-bold text-gold mt-1">₹{{ "{:,.2f}".format(kpis.monthly_revenue) }}</div>
+      <small class="text-muted">Cleared guest payments</small>
+    </div>
+  </div>
+  <div class="col-md-3 col-6">
+    <div class="p-3 bg-white rounded-3 border">
+      <div class="kpi-label">Occupancy Rate</div>
+      <div class="fs-4 fw-bold text-primary mt-1">{{ kpis.occupancy_rate }}%</div>
+      <small class="text-muted">Operational room utilization</small>
+    </div>
+  </div>
+  <div class="col-md-3 col-6">
+    <div class="p-3 bg-white rounded-3 border">
+      <div class="kpi-label">Cancellation Rate</div>
+      <div class="fs-4 fw-bold text-danger mt-1">{{ cancellation_rate }}%</div>
+      <small class="text-muted">Cancelled vs total bookings</small>
+    </div>
+  </div>
+  <div class="col-md-3 col-6">
+    <div class="p-3 bg-white rounded-3 border">
+      <div class="kpi-label">Lifetime Revenue</div>
+      <div class="fs-4 fw-bold text-success mt-1">₹{{ "{:,.2f}".format(kpis.all_time_revenue) }}</div>
+      <small class="text-muted">Total system transactions</small>
+    </div>
+  </div>
+</div>
+
+<!-- Visual Charts Section -->
+<div class="row g-4 mb-4">
+  <div class="col-lg-8">
+    <div class="gh-card h-100">
+      <div class="gh-card-header">
+        <h6 class="font-serif text-dark mb-0"><i class="bi bi-graph-up text-gold me-2"></i> Historical Monthly Revenue Trend</h6>
+        <span class="badge bg-light text-muted border">6-Month Rolling Window</span>
+      </div>
+      <div class="p-4" style="height: 320px;">
+        <canvas id="revenueTrendChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-4">
+    <div class="gh-card h-100">
+      <div class="gh-card-header">
+        <h6 class="font-serif text-dark mb-0"><i class="bi bi-pie-chart text-gold me-2"></i> Reservation Status Breakdown</h6>
+      </div>
+      <div class="p-4" style="height: 320px;">
+        <canvas id="statusDistributionChart"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Room Type Performance Breakdown Table -->
+<div class="gh-card mb-4">
+  <div class="gh-card-header">
+    <h6 class="font-serif text-dark mb-0"><i class="bi bi-trophy text-gold me-2"></i> Room Classification Performance</h6>
+    <span class="badge bg-light text-muted border">Aggregated Database Grouping</span>
+  </div>
+  <div class="table-responsive">
+    <table class="table gh-table mb-0">
+      <thead>
+        <tr>
+          <th>Category Code</th>
+          <th>Suite Name</th>
+          <th class="text-end">Base Nightly Rate</th>
+          <th class="text-end">Total Bookings</th>
+          <th class="text-end">Avg. Length of Stay</th>
+          <th class="text-end">Total Revenue Generated</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for perf in room_performance %}
+          <tr>
+            <td><span class="badge bg-gold-light text-gold-hover border border-warning">{{ perf.code }}</span></td>
+            <td><strong>{{ perf.name }}</strong></td>
+            <td class="text-end">₹{{ "{:,.2f}".format(perf.base_price) }}</td>
+            <td class="text-end fw-semibold text-dark">{{ perf.total_bookings }}</td>
+            <td class="text-end">{{ perf.avg_stay_nights }} Night(s)</td>
+            <td class="text-end fw-bold text-gold">₹{{ "{:,.2f}".format(perf.total_revenue) }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Unpaid & Partially Paid Folios Alert Table -->
+<div class="gh-card">
+  <div class="gh-card-header">
+    <h6 class="font-serif text-dark mb-0"><i class="bi bi-exclamation-triangle text-warning me-2"></i> Open / Unsettled Folios ({{ unpaid_reservations|length }})</h6>
+    <span class="badge bg-warning text-dark">Action Required</span>
+  </div>
+  <div class="table-responsive">
+    <table class="table gh-table mb-0">
+      <thead>
+        <tr>
+          <th>Confirmation #</th>
+          <th>Guest</th>
+          <th>Stay Dates</th>
+          <th>Total Billed</th>
+          <th>Paid to Date</th>
+          <th>Balance Due</th>
+          <th class="text-end">Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if unpaid_reservations %}
+          {% for res in unpaid_reservations %}
+            <tr>
+              <td>
+                <a href="{{ url_for('reservations.detail', reservation_id=res.id) }}" class="fw-bold text-dark font-monospace text-decoration-none">
+                  {{ res.confirmation_number }}
+                </a>
+              </td>
+              <td>
+                <strong class="text-dark d-block">{{ res.guest_name }}</strong>
+                <small class="text-muted">{{ res.guest_phone }}</small>
+              </td>
+              <td><small class="text-dark">{{ res.check_in_date }} &rarr; {{ res.check_out_date }}</small></td>
+              <td>₹{{ "{:,.2f}".format(res.total_amount) }}</td>
+              <td><span class="text-success">₹{{ "{:,.2f}".format(res.paid_amount) }}</span></td>
+              <td><span class="fw-bold text-danger">₹{{ "{:,.2f}".format(res.outstanding_balance) }}</span></td>
+              <td class="text-end">
+                <a href="{{ url_for('reservations.detail', reservation_id=res.id) }}" class="btn btn-sm btn-gold py-1 px-2">
+                  <i class="bi bi-credit-card me-1"></i> Settle Folio
+                </a>
+              </td>
+            </tr>
+          {% endfor %}
+        {% else %}
+          <tr>
+            <td colspan="7" class="text-center py-4 text-muted">All active reservations are fully paid and settled!</td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+{% endblock %}

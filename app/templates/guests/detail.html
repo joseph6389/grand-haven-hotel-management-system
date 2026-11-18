@@ -1,0 +1,190 @@
+{% extends 'base.html' %}
+
+{% block title %}Guest Folio — {{ guest.full_name }} — {{ hotel_name }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <a href="{{ url_for('guests.index') }}" class="text-muted small text-decoration-none mb-1 d-inline-block">
+      <i class="bi bi-arrow-left"></i> Back to Guest Directory
+    </a>
+    <h3 class="font-serif text-dark mb-0">{{ guest.full_name }}</h3>
+    <small class="text-muted">Guest ID: #{{ guest.id }} &bull; Member since {{ guest.created_at|india_datetime }}</small>
+  </div>
+  <button class="btn btn-outline-gold btn-sm" data-bs-toggle="modal" data-bs-target="#editGuestModal">
+    <i class="bi bi-pencil me-1"></i> Edit Profile
+  </button>
+</div>
+
+<div class="row g-4 mb-4">
+  <!-- Guest Profile Card -->
+  <div class="col-lg-4">
+    <div class="gh-card p-4 h-100">
+      <div class="text-center pb-3 border-bottom mb-3">
+        <div class="rounded-circle bg-navy text-white mx-auto d-flex align-items-center justify-content-center fw-bold fs-3 mb-2" style="width: 72px; height: 72px; background: #1A2238;">
+          {{ guest.first_name[0] }}{{ guest.last_name[0] }}
+        </div>
+        <h5 class="font-serif text-dark mb-0">{{ guest.full_name }}</h5>
+        <span class="badge badge-gold mt-1">{{ guest.total_bookings }} Lifetime Reservation{% if guest.total_bookings != 1 %}s{% endif %}</span>
+      </div>
+
+      <div class="small">
+        <div class="mb-2">
+          <span class="text-muted text-uppercase fw-semibold d-block small">Email Address</span>
+          <span class="text-dark">{{ guest.email }}</span>
+        </div>
+        <div class="mb-2">
+          <span class="text-muted text-uppercase fw-semibold d-block small">Phone</span>
+          <span class="text-dark">{{ guest.phone }}</span>
+        </div>
+        <div class="mb-2">
+          <span class="text-muted text-uppercase fw-semibold d-block small">Identification</span>
+          <span class="text-dark">{{ guest.identification_type or 'N/A' }}: {{ guest.identification_number or 'N/A' }}</span>
+        </div>
+        <div class="mb-2">
+          <span class="text-muted text-uppercase fw-semibold d-block small">Address</span>
+          <span class="text-dark">{{ guest.address or 'N/A' }}</span>
+          <span class="text-muted d-block">{{ guest.city or '' }}{% if guest.city and guest.country %}, {% endif %}{{ guest.country or '' }}</span>
+        </div>
+        {% if guest.notes %}
+        <div class="p-2 bg-light rounded mt-3">
+          <span class="text-muted text-uppercase fw-semibold d-block small">Concierge Notes</span>
+          <span class="text-dark">{{ guest.notes }}</span>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Reservation History -->
+  <div class="col-lg-8">
+    <div class="gh-card h-100">
+      <div class="gh-card-header">
+        <h6 class="font-serif text-dark mb-0"><i class="bi bi-clock-history text-gold me-2"></i> Reservation History ({{ reservations|length }})</h6>
+      </div>
+      <div class="table-responsive">
+        <table class="table gh-table mb-0">
+          <thead>
+            <tr>
+              <th>Confirmation #</th>
+              <th>Stay Dates</th>
+              <th>Room(s)</th>
+              <th>Total</th>
+              <th>Status</th>
+              <th class="text-end">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% if reservations %}
+              {% for res in reservations %}
+                <tr>
+                  <td>
+                    <a href="{{ url_for('reservations.detail', reservation_id=res.id) }}" class="fw-bold text-dark font-monospace text-decoration-none">
+                      {{ res.confirmation_number }}
+                    </a>
+                  </td>
+                  <td>
+                    <span class="small text-dark">{{ res.check_in_date|india_date }} &rarr; {{ res.check_out_date|india_date }}</span>
+                    <small class="text-muted d-block">{{ res.total_nights }} Night{% if res.total_nights > 1 %}s{% endif %}</small>
+                  </td>
+                  <td>
+                    {% for alloc in res.room_allocations %}
+                      <span class="badge bg-light text-dark border me-1">{{ alloc.room.room_number }}</span>
+                    {% endfor %}
+                  </td>
+                  <td>
+                    <span class="fw-bold text-dark">₹{{ "{:,.2f}".format(res.total_amount) }}</span>
+                  </td>
+                  <td>
+                    <span class="badge {{ res.status|status_badge }}">{{ res.status|replace('_', ' ')|title }}</span>
+                  </td>
+                  <td class="text-end">
+                    <a href="{{ url_for('reservations.detail', reservation_id=res.id) }}" class="btn btn-sm btn-outline-secondary py-1 px-2">
+                      <i class="bi bi-eye"></i> Details
+                    </a>
+                  </td>
+                </tr>
+              {% endfor %}
+            {% else %}
+              <tr>
+                <td colspan="6" class="text-center py-4 text-muted">No reservations registered for this guest yet.</td>
+              </tr>
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Guest Modal -->
+<div class="modal fade" id="editGuestModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header bg-navy text-white" style="background-color: #1A2238;">
+        <h5 class="modal-title font-serif"><i class="bi bi-pencil-square text-gold me-2"></i> Edit Guest Profile</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <form action="{{ url_for('guests.edit', guest_id=guest.id) }}" method="POST">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="modal-body p-4">
+          <div class="row g-2 mb-3">
+            <div class="col-6">
+              <label class="form-label small text-muted text-uppercase fw-semibold">First Name *</label>
+              <input type="text" name="first_name" class="form-control" value="{{ guest.first_name }}" required>
+            </div>
+            <div class="col-6">
+              <label class="form-label small text-muted text-uppercase fw-semibold">Last Name *</label>
+              <input type="text" name="last_name" class="form-control" value="{{ guest.last_name }}" required>
+            </div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label small text-muted text-uppercase fw-semibold">Email Address *</label>
+            <input type="email" name="email" class="form-control" value="{{ guest.email }}" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label small text-muted text-uppercase fw-semibold">Phone Number *</label>
+            <input type="tel" name="phone" class="form-control" value="{{ guest.phone }}" required>
+          </div>
+          <div class="row g-2 mb-3">
+            <div class="col-6">
+              <label class="form-label small text-muted text-uppercase fw-semibold">ID Type</label>
+              <select name="identification_type" class="form-select">
+                <option value="Passport" {% if guest.identification_type == 'Passport' %}selected{% endif %}>Passport</option>
+                <option value="Driver License" {% if guest.identification_type == 'Driver License' %}selected{% endif %}>Driver's License</option>
+                <option value="National ID" {% if guest.identification_type == 'National ID' %}selected{% endif %}>National ID Card</option>
+              </select>
+            </div>
+            <div class="col-6">
+              <label class="form-label small text-muted text-uppercase fw-semibold">ID Document #</label>
+              <input type="text" name="identification_number" class="form-control" value="{{ guest.identification_number or '' }}">
+            </div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label small text-muted text-uppercase fw-semibold">Street Address</label>
+            <input type="text" name="address" class="form-control" value="{{ guest.address or '' }}">
+          </div>
+          <div class="row g-2 mb-3">
+            <div class="col-6">
+              <label class="form-label small text-muted text-uppercase fw-semibold">City</label>
+              <input type="text" name="city" class="form-control" value="{{ guest.city or '' }}">
+            </div>
+            <div class="col-6">
+              <label class="form-label small text-muted text-uppercase fw-semibold">Country</label>
+              <input type="text" name="country" class="form-control" value="{{ guest.country or '' }}">
+            </div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label small text-muted text-uppercase fw-semibold">Concierge Notes</label>
+            <textarea name="notes" class="form-control" rows="2">{{ guest.notes or '' }}</textarea>
+          </div>
+        </div>
+        <div class="modal-footer bg-light">
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-gold btn-sm">Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

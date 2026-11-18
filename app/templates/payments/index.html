@@ -1,0 +1,244 @@
+{% extends 'base.html' %}
+
+{% block title %}Payments & Financial Ledger — {{ hotel_name }}{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+  <div>
+    <span class="text-gold fw-bold text-uppercase small letter-spacing-1">Financial Operations</span>
+    <h3 class="font-serif text-dark mb-0">Payments Ledger & Receipts</h3>
+    <small class="text-muted">Transaction records, simulated gateway logs, and guest folio settlements</small>
+  </div>
+  <button class="btn btn-gold btn-sm d-flex align-items-center gap-1 shadow-sm" data-bs-toggle="modal" data-bs-target="#newPaymentModal">
+    <i class="bi bi-credit-card"></i> Record Folio Payment
+  </button>
+</div>
+
+<!-- Financial Summary KPI Row -->
+<div class="row g-3 mb-4">
+  <div class="col-md-4">
+    <div class="kpi-card">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <div class="kpi-label">Net Payment Ledger</div>
+          <div class="kpi-value mt-1 text-success">₹{{ "{:,.2f}".format(total_paid) }}</div>
+          <small class="text-muted">Payment records less ledger refunds; external settlement is not verified</small>
+        </div>
+        <div class="kpi-icon" style="background: rgba(46, 125, 50, 0.12); color: #2E7D32;">
+          <i class="bi bi-cash-stack"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-4">
+    <div class="kpi-card">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <div class="kpi-label">Refunds Recorded in Hotel Ledger</div>
+          <div class="kpi-value mt-1 text-info">₹{{ "{:,.2f}".format(total_refunded) }}</div>
+          <small class="text-muted">Ledger entries only; external payouts are not verified</small>
+        </div>
+        <div class="kpi-icon" style="background: rgba(2, 119, 189, 0.12); color: #0277BD;">
+          <i class="bi bi-arrow-counterclockwise"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-4">
+    <div class="kpi-card">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <div class="kpi-label">Unpaid / Open Folios</div>
+          <div class="kpi-value mt-1 text-warning">{{ unpaid_reservations|length }}</div>
+          <small class="text-muted">Reservations with balance due</small>
+        </div>
+        <div class="kpi-icon" style="background: rgba(239, 108, 0, 0.12); color: #EF6C00;">
+          <i class="bi bi-exclamation-circle"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Filters Bar -->
+<div class="gh-card p-3 mb-4">
+  <form action="{{ url_for('payments.index') }}" method="GET" class="row g-2 align-items-center">
+    <div class="col-md-5">
+      <div class="input-group">
+        <span class="input-group-text bg-light border-end-0"><i class="bi bi-search text-gold"></i></span>
+        <input type="text" name="search" class="form-control border-start-0" placeholder="Search by payment reference or confirmation #..." value="{{ search_query }}">
+      </div>
+    </div>
+    <div class="col-md-3">
+      <select name="method" class="form-select">
+        <option value="">All Payment Methods</option>
+        <option value="credit_card" {% if selected_method == 'credit_card' %}selected{% endif %}>Credit Card (Simulated)</option>
+        <option value="simulation" {% if selected_method == 'simulation' %}selected{% endif %}>Gateway Simulation</option>
+        <option value="cash" {% if selected_method == 'cash' %}selected{% endif %}>Cash</option>
+        <option value="bank_transfer" {% if selected_method == 'bank_transfer' %}selected{% endif %}>Wire Transfer</option>
+      </select>
+    </div>
+    <div class="col-md-3">
+      <select name="status" class="form-select">
+        <option value="">All Payment Statuses</option>
+        <option value="paid" {% if selected_status == 'paid' %}selected{% endif %}>Paid (ledger)</option>
+        <option value="partially_refunded" {% if selected_status == 'partially_refunded' %}selected{% endif %}>Partially refunded (ledger)</option>
+        <option value="refunded" {% if selected_status == 'refunded' %}selected{% endif %}>Refund recorded (ledger)</option>
+      </select>
+    </div>
+    <div class="col-md-1 d-flex gap-1">
+      <button type="submit" class="btn btn-navy w-100 py-2"><i class="bi bi-filter"></i></button>
+      {% if search_query or selected_method or selected_status %}
+        <a href="{{ url_for('payments.index') }}" class="btn btn-outline-secondary" title="Clear Filters"><i class="bi bi-x-lg"></i></a>
+      {% endif %}
+    </div>
+  </form>
+</div>
+
+<!-- Payment Ledger Table -->
+<div class="gh-card">
+  <div class="table-responsive">
+    <table class="table gh-table mb-0">
+      <thead>
+        <tr>
+          <th>Payment Ref</th>
+          <th>Folio / Guest</th>
+          <th>Amount Paid</th>
+          <th>Method</th>
+          <th>Status</th>
+          <th>Processed Date</th>
+          <th class="text-end">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if payments %}
+          {% for pay in payments %}
+            <tr>
+              <td>
+                <span class="font-monospace fw-bold text-dark">{{ pay.payment_reference }}</span>
+                <small class="text-muted d-block">{{ pay.transaction_reference or 'Simulated' }}</small>
+              </td>
+              <td>
+                <a href="{{ url_for('reservations.detail', reservation_id=pay.reservation.id) }}" class="fw-semibold text-dark text-decoration-none">
+                  {{ pay.reservation.guest.full_name }}
+                </a>
+                <small class="text-muted d-block font-monospace">{{ pay.reservation.confirmation_number }}</small>
+              </td>
+              <td>
+                <span class="fw-bold fs-6 text-dark">₹{{ "{:,.2f}".format(pay.amount) }}</span>
+                <small class="text-muted d-block">{{ pay.currency }}</small>
+              </td>
+              <td>
+                <span class="badge bg-light text-dark border">{{ pay.payment_method|replace('_', ' ')|title }}</span>
+              </td>
+              <td>
+                <span class="badge {{ pay.payment_status|status_badge }}">{{ 'Partial refund recorded' if pay.payment_status == 'partially_refunded' else 'Refund recorded' if pay.payment_status == 'refunded' else pay.payment_status|title }}</span>
+              </td>
+              <td>
+                <small class="text-dark">{{ pay.created_at|india_datetime }}</small>
+              </td>
+              <td class="text-end">
+                <a href="{{ url_for('payments.receipt', payment_id=pay.id) }}" target="_blank" class="btn btn-sm btn-outline-secondary py-1 px-2" title="Print Official Receipt">
+                  <i class="bi bi-receipt me-1"></i> Receipt
+                </a>
+                {% if pay.payment_status in ['paid', 'partially_refunded'] %}
+                  <button class="btn btn-sm btn-outline-danger py-1 px-2 ms-1" data-bs-toggle="modal" data-bs-target="#refundModal_{{ pay.id }}" title="Record Refund in Hotel Ledger">
+                    <i class="bi bi-arrow-counterclockwise"></i>
+                  </button>
+                {% endif %}
+              </td>
+            </tr>
+
+            <!-- Refund Modal -->
+            <div class="modal fade text-start" id="refundModal_{{ pay.id }}" tabindex="-1" aria-hidden="true">
+              <div class="modal-dialog">
+                <div class="modal-content">
+                  <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title font-serif"><i class="bi bi-arrow-counterclockwise me-2"></i> Record Refund in Hotel Ledger</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                  </div>
+                  <form action="{{ url_for('payments.refund', payment_id=pay.id) }}" method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="modal-body p-4">
+                      <p>Record a refund against <strong>{{ pay.payment_reference }}</strong> for guest <strong>{{ pay.reservation.guest.full_name }}</strong>? This updates the hotel ledger only and does not initiate or confirm a payout.</p>
+                      <div class="mb-3">
+                        <label class="form-label small text-muted text-uppercase fw-semibold">Reason for Refund *</label>
+                        <input type="text" name="reason" class="form-control" required placeholder="Guest cancellation, service adjustment, etc.">
+                      </div>
+                    </div>
+                    <div class="modal-footer bg-light">
+                      <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                      <button type="submit" class="btn btn-danger btn-sm">Record Ledger Refund</button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            </div>
+          {% endfor %}
+        {% else %}
+          <tr>
+            <td colspan="7" class="text-center py-5 text-muted">
+              <i class="bi bi-credit-card fs-1 d-block mb-2 text-secondary"></i>
+              No payments match your filter criteria.
+            </td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Record Folio Payment Modal -->
+<div class="modal fade" id="newPaymentModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header bg-navy text-white" style="background-color: #1A2238;">
+        <h5 class="modal-title font-serif"><i class="bi bi-credit-card text-gold me-2"></i> Record Folio Payment</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <form action="{{ url_for('payments.process') }}" method="POST">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="modal-body p-4">
+          <div class="mb-3">
+            <label class="form-label small text-muted text-uppercase fw-semibold">Select Reservation Folio *</label>
+            <select name="reservation_id" class="form-select" required>
+              <option value="">Select a reservation with outstanding balance...</option>
+              {% for res in unpaid_reservations %}
+                <option value="{{ res.id }}">
+                  {{ res.confirmation_number }} &mdash; {{ res.guest.full_name }} (Balance Due: ₹{{ "{:,.2f}".format(res.outstanding_balance) }})
+                </option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label small text-muted text-uppercase fw-semibold">Payment Amount (₹) *</label>
+            <input type="number" name="amount" step="0.01" min="0.01" class="form-control" placeholder="0.00" required>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label small text-muted text-uppercase fw-semibold">Payment Method *</label>
+            <select name="payment_method" class="form-select">
+              <option value="simulation" selected>Simulated Payment Gateway (Academic Test)</option>
+              <option value="credit_card">Credit Card (Simulation)</option>
+              <option value="cash">Front Desk Cash</option>
+              <option value="bank_transfer">Wire Transfer</option>
+            </select>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label small text-muted text-uppercase fw-semibold">Transaction Notes / Reference</label>
+            <input type="text" name="notes" class="form-control" placeholder="Auth code or payment remarks...">
+          </div>
+        </div>
+        <div class="modal-footer bg-light">
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-gold btn-sm">Process Payment</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

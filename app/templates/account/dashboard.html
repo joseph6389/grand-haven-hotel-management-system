@@ -1,0 +1,12 @@
+{% extends 'base.html' %}
+{% block title %}My Reservations — {{ hotel_name }}{% endblock %}
+{% block body %}
+<div class="d-flex justify-content-between align-items-center mb-4"><div><span class="text-gold text-uppercase small fw-bold">Guest account</span><h1 class="font-serif h2 mb-0">Welcome, {{ guest.first_name }}</h1></div><a href="{{ url_for('public.index') }}#searchWidget" class="btn btn-gold">Search rooms</a></div>
+<div class="gh-card mb-4"><div class="gh-card-header"><h2 class="h5 mb-0">Your reservation history</h2><a href="{{ url_for('account.profile') }}" class="btn btn-outline-secondary btn-sm">Profile</a></div>
+  <div class="table-responsive"><table class="table gh-table mb-0"><thead><tr><th>Confirmation</th><th>Stay</th><th>Status</th><th>Payment</th><th></th></tr></thead><tbody>
+  {% for res in reservations %}<tr><td class="font-monospace">{{ res.confirmation_number }}</td><td>{{ res.check_in_date|india_date }} – {{ res.check_out_date|india_date }}</td><td><span class="badge {{ res.status|status_badge }}">{{ res.status|replace('_',' ')|title }}</span></td><td>{{ res.payment_status|replace('_',' ')|title }} · ₹{{ '{:,.2f}'.format(res.paid_amount) }}</td><td><a class="btn btn-sm btn-outline-gold" href="{{ url_for('account.reservation_detail', reservation_id=res.id) }}">Details</a></td></tr>
+  {% else %}<tr><td colspan="5" class="text-center text-muted py-4">No reservations are linked to your account yet.</td></tr>{% endfor %}
+  </tbody></table></div>
+</div>
+<form method="post" action="{{ url_for('account.logout') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-outline-secondary btn-sm">Sign out</button></form>
+{% endblock %}

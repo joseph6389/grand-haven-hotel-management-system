@@ -1,0 +1,22 @@
+{% extends 'base.html' %}
+{% block title %}Reservation {{ reservation.confirmation_number }} — {{ hotel_name }}{% endblock %}
+{% block body %}
+<div class="mb-3"><a href="{{ url_for('account.dashboard') }}">← My reservations</a></div>
+<div class="gh-card p-4 mb-4"><div class="d-flex justify-content-between"><div><span class="text-muted">Confirmation</span><h1 class="font-serif h3">{{ reservation.confirmation_number }}</h1></div><span class="badge align-self-start {{ reservation.status|status_badge }}">{{ reservation.status|replace('_',' ')|title }}</span></div>
+<dl class="row mb-0"><dt class="col-sm-4">Stay dates</dt><dd class="col-sm-8">{{ reservation.check_in_date|india_date }} – {{ reservation.check_out_date|india_date }} ({{ reservation.total_nights }} nights)</dd><dt class="col-sm-4">Total</dt><dd class="col-sm-8">₹{{ '{:,.2f}'.format(reservation.total_amount) }} INR</dd><dt class="col-sm-4">Paid</dt><dd class="col-sm-8">₹{{ '{:,.2f}'.format(reservation.paid_amount) }} INR — {{ reservation.payment_status|replace('_',' ')|title }}</dd></dl>
+</div>
+<div class="gh-card p-4 mb-4"><h2 class="h5">Payments and refunds</h2><p class="small text-muted">Statuses and amounts are hotel-ledger records; external settlements or payouts are not verified.</p>{% for payment in payments %}<p class="mb-1">{{ payment.payment_reference }} · ₹{{ '{:,.2f}'.format(payment.amount) }} · {{ 'Partial refund recorded (ledger)' if payment.payment_status == 'partially_refunded' else 'Refund recorded (ledger)' if payment.payment_status == 'refunded' else payment.payment_status|replace('_',' ')|title }}{% if payment.refunded_amount %} · Refund recorded ₹{{ '{:,.2f}'.format(payment.refunded_amount) }}{% endif %}</p>{% else %}<p class="text-muted">No payments recorded.</p>{% endfor %}</div>
+<div class="gh-card p-4 mb-4"><h2 class="h5">Cancellation information</h2><p>{{ policy }}</p>
+<p>A ₹500 cancellation fee applies when cancellation is requested at or within 48 hours before the configured local check-in time. The fee is capped at the amount recorded as paid.</p>
+<p class="small text-muted">Refund eligibility remains subject to hotel policy and staff review. A ledger entry does not confirm an external payout.</p>
+{% if cancellation %}<p class="mb-2"><strong>Cancellation:</strong> {{ cancellation.changed_at|india_datetime }} · Request source: {{ 'Phone' if cancellation.request_source == 'phone' else 'Guest account' }} · Refund status: {{ (cancellation.refund_status or 'pending review')|replace('_',' ')|title }}{% if cancellation.cancellation_fee is not none %} · Fee: ₹{{ '{:,.2f}'.format(cancellation.cancellation_fee) }}{% endif %}</p>{% endif %}
+{% if cancellation and cancellation.cancellation_fee is not none and cancellation.refund_status == 'pending_review' %}
+  {% set potential_refund = reservation.paid_amount - cancellation.cancellation_fee %}
+  {% if potential_refund > 0 %}<p><strong>Potential refund before staff review:</strong> ₹{{ '{:,.2f}'.format(potential_refund) }}. This is based on the current hotel ledger and is not a confirmed payout.</p>{% else %}<p>No remaining refund is indicated by the current paid balance after the cancellation fee.</p>{% endif %}
+{% elif cancellation and cancellation.refund_status == 'pending_review' %}
+  <p>Refund eligibility remains subject to the configured hotel policy and staff review. No additional cancellation fee was recorded.</p>
+{% elif cancellation and cancellation.refund_status == 'recorded' %}
+  <p>A refund amount has been recorded in the hotel ledger. External payout is not verified by this system.</p>
+{% endif %}
+{% if reservation.can_transition_to('cancelled') %}<form method="post" action="{{ url_for('account.cancel', reservation_id=reservation.id) }}" onsubmit="return confirm('Cancel this reservation?');"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="confirm_cancel" value="yes"><button class="btn btn-outline-danger">Cancel reservation</button></form>{% else %}<span class="text-muted">This reservation cannot be cancelled in its current status.</span>{% endif %}</div>
+{% endblock %}

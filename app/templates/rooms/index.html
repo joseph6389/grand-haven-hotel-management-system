@@ -1,0 +1,339 @@
+{% extends 'base.html' %}
+
+{% block title %}Rooms & Physical Inventory — {{ hotel_name }}{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+  <div>
+    <span class="text-gold fw-bold text-uppercase small letter-spacing-1">Property Inventory</span>
+    <h3 class="font-serif text-dark mb-0">Rooms & Suite Management</h3>
+    <small class="text-muted">Manage physical inventory, operational readiness, and room attributes</small>
+  </div>
+  <button class="btn btn-gold btn-sm d-flex align-items-center gap-1 shadow-sm" data-bs-toggle="modal" data-bs-target="#addRoomModal">
+    <i class="bi bi-plus-circle"></i> Add Room Unit
+  </button>
+</div>
+
+<!-- Status Counts Pill Filters -->
+<div class="row g-3 mb-4">
+  <div class="col-sm-3 col-6">
+    <a href="{{ url_for('rooms.index') }}" class="p-3 bg-white rounded-3 border d-flex align-items-center justify-content-between text-decoration-none {% if not selected_status %}border-gold shadow-sm{% endif %}">
+      <div>
+        <div class="text-muted small">Total Inventory</div>
+        <div class="fs-4 fw-bold text-dark">{{ stats.total }}</div>
+      </div>
+      <i class="bi bi-door-closed fs-3 text-secondary"></i>
+    </a>
+  </div>
+  <div class="col-sm-3 col-6">
+    <a href="{{ url_for('rooms.index', status='operational') }}" class="p-3 bg-white rounded-3 border d-flex align-items-center justify-content-between text-decoration-none {% if selected_status == 'operational' %}border-success shadow-sm{% endif %}">
+      <div>
+        <div class="text-success small fw-semibold">Operational</div>
+        <div class="fs-4 fw-bold text-success">{{ stats.operational }}</div>
+      </div>
+      <i class="bi bi-check-circle fs-3 text-success"></i>
+    </a>
+  </div>
+  <div class="col-sm-3 col-6">
+    <a href="{{ url_for('rooms.index', status='maintenance') }}" class="p-3 bg-white rounded-3 border d-flex align-items-center justify-content-between text-decoration-none {% if selected_status == 'maintenance' %}border-warning shadow-sm{% endif %}">
+      <div>
+        <div class="text-warning small fw-semibold">Maintenance</div>
+        <div class="fs-4 fw-bold text-warning">{{ stats.maintenance }}</div>
+      </div>
+      <i class="bi bi-tools fs-3 text-warning"></i>
+    </a>
+  </div>
+  <div class="col-sm-3 col-6">
+    <a href="{{ url_for('rooms.index', status='out_of_order') }}" class="p-3 bg-white rounded-3 border d-flex align-items-center justify-content-between text-decoration-none {% if selected_status == 'out_of_order' %}border-danger shadow-sm{% endif %}">
+      <div>
+        <div class="text-danger small fw-semibold">Out of Order</div>
+        <div class="fs-4 fw-bold text-danger">{{ stats.out_of_order }}</div>
+      </div>
+      <i class="bi bi-slash-circle fs-3 text-danger"></i>
+    </a>
+  </div>
+</div>
+
+<!-- Filter Bar -->
+<div class="gh-card p-3 mb-4">
+  <form action="{{ url_for('rooms.index') }}" method="GET" class="row g-2 align-items-center">
+    <div class="col-md-4">
+      <div class="input-group">
+        <span class="input-group-text bg-light border-end-0"><i class="bi bi-search text-gold"></i></span>
+        <input type="text" name="search" class="form-control border-start-0" placeholder="Search room number..." value="{{ search_query }}">
+      </div>
+    </div>
+    <div class="col-md-3">
+      <select name="room_type_id" class="form-select">
+        <option value="">All Room Types</option>
+        {% for rt in room_types %}
+          <option value="{{ rt.id }}" {% if selected_type == rt.id %}selected{% endif %}>{{ rt.code }} &mdash; {{ rt.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-2">
+      <select name="status" class="form-select">
+        <option value="">All Statuses</option>
+        <option value="operational" {% if selected_status == 'operational' %}selected{% endif %}>Operational</option>
+        <option value="maintenance" {% if selected_status == 'maintenance' %}selected{% endif %}>Maintenance</option>
+        <option value="out_of_order" {% if selected_status == 'out_of_order' %}selected{% endif %}>Out of Order</option>
+      </select>
+    </div>
+    <div class="col-md-2">
+      <select name="floor" class="form-select">
+        <option value="">All Floors</option>
+        <option value="1" {% if selected_floor == 1 %}selected{% endif %}>Floor 1</option>
+        <option value="2" {% if selected_floor == 2 %}selected{% endif %}>Floor 2</option>
+        <option value="3" {% if selected_floor == 3 %}selected{% endif %}>Floor 3</option>
+        <option value="4" {% if selected_floor == 4 %}selected{% endif %}>Floor 4</option>
+      </select>
+    </div>
+    <div class="col-md-1 d-flex gap-1">
+      <button type="submit" class="btn btn-navy w-100 py-2"><i class="bi bi-filter"></i></button>
+      {% if search_query or selected_type or selected_status or selected_floor %}
+        <a href="{{ url_for('rooms.index') }}" class="btn btn-outline-secondary" title="Clear Filters"><i class="bi bi-x-lg"></i></a>
+      {% endif %}
+    </div>
+  </form>
+</div>
+
+<!-- Rooms Table -->
+<div class="gh-card">
+  <div class="table-responsive" style="overflow: visible;">
+    <table class="table gh-table mb-0">
+      <thead>
+        <tr>
+          <th>Room #</th>
+          <th>Type / Bedding</th>
+          <th>Floor</th>
+          <th>Capacity</th>
+          <th>Nightly Rate</th>
+          <th>Operational Status</th>
+          <th>Amenities</th>
+          <th class="text-end">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if rooms %}
+          {% for room in rooms %}
+            <tr>
+              <td>
+                <span class="fs-5 fw-bold text-dark">Room {{ room.room_number }}</span>
+                {% if not room.is_active %}<span class="badge bg-secondary ms-1">Deactivated</span>{% endif %}
+              </td>
+              <td>
+                <strong class="text-dark d-block">{{ room.room_type.name }}</strong>
+                <small class="text-muted"><i class="bi bi-moon me-1"></i> {{ room.room_type.bed_type }}</small>
+              </td>
+              <td><span class="badge bg-light text-dark border">Floor {{ room.floor }}</span></td>
+              <td><i class="bi bi-people text-gold me-1"></i> {{ room.capacity }} Guests</td>
+              <td><span class="fw-bold text-dark">₹{{ "{:,.2f}".format(room.price_per_night) }}</span></td>
+              <td>
+                <span class="badge {{ room.operational_status|status_badge }}">
+                  {{ room.operational_status|replace('_', ' ')|title }}
+                </span>
+              </td>
+              <td>
+                <div class="d-flex flex-wrap gap-1" style="max-width: 220px;">
+                  {% for am in room.amenities[:3] %}
+                    <span class="badge bg-light text-muted border small" title="{{ am.name }}"><i class="bi {{ am.icon }} text-gold"></i></span>
+                  {% endfor %}
+                  {% if room.amenities|length > 3 %}
+                    <span class="badge bg-light text-muted border small">+{{ room.amenities|length - 3 }}</span>
+                  {% endif %}
+                </div>
+              </td>
+              <td class="text-end">
+
+<div class="dropdown d-inline position-static">
+
+                  <button class="btn btn-sm btn-outline-secondary dropdown-toggle py-1 px-2" type="button" data-bs-toggle="dropdown">
+                    Manage
+                  </button>
+
+<ul class="dropdown-menu dropdown-menu-end shadow"
+    style="min-width: 230px; z-index: 1090;">
+
+                    <li>
+                      <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#editModal_{{ room.id }}">
+                        <i class="bi bi-pencil me-2"></i> Edit Details
+                      </a>
+                    </li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li class="dropdown-header small text-uppercase">Set Operational Status</li>
+                    <li>
+                      <form action="{{ url_for('rooms.update_status', room_id=room.id) }}" method="POST">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <input type="hidden" name="operational_status" value="operational">
+                        <button type="submit" class="dropdown-item text-success"><i class="bi bi-check2-circle me-2"></i> Mark Operational</button>
+                      </form>
+                    </li>
+                    <li>
+                      <form action="{{ url_for('rooms.update_status', room_id=room.id) }}" method="POST">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <input type="hidden" name="operational_status" value="maintenance">
+                        <button type="submit" class="dropdown-item text-warning"><i class="bi bi-tools me-2"></i> Mark Under Maintenance</button>
+                      </form>
+                    </li>
+                    <li>
+                      <form action="{{ url_for('rooms.update_status', room_id=room.id) }}" method="POST">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <input type="hidden" name="operational_status" value="out_of_order">
+                        <button type="submit" class="dropdown-item text-danger"><i class="bi bi-slash-circle me-2"></i> Mark Out of Order</button>
+                      </form>
+                    </li>
+                  </ul>
+                </div>
+              </td>
+            </tr>
+
+            <!-- Edit Room Modal -->
+            <div class="modal fade text-start" id="editModal_{{ room.id }}" tabindex="-1" aria-hidden="true">
+              <div class="modal-dialog">
+                <div class="modal-content">
+                  <div class="modal-header bg-navy text-white" style="background-color: #1A2238;">
+                    <h5 class="modal-title font-serif"><i class="bi bi-pencil-square text-gold me-2"></i> Edit Room {{ room.room_number }}</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                  </div>
+                  <form action="{{ url_for('rooms.edit', room_id=room.id) }}" method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="modal-body p-4">
+                      <div class="mb-3">
+                        <label class="form-label small text-muted text-uppercase fw-semibold">Room Number</label>
+                        <input type="text" name="room_number" class="form-control" value="{{ room.room_number }}" required>
+                      </div>
+                      <div class="mb-3">
+                        <label class="form-label small text-muted text-uppercase fw-semibold">Room Classification Type</label>
+                        <select name="room_type_id" class="form-select" required>
+                          {% for rt in room_types %}
+                            <option value="{{ rt.id }}" {% if room.room_type_id == rt.id %}selected{% endif %}>{{ rt.code }} &mdash; {{ rt.name }} (₹{{ "{:,.2f}".format(rt.base_price) }})</option>
+                          {% endfor %}
+                        </select>
+                      </div>
+                      <div class="row g-2 mb-3">
+                        <div class="col-6">
+                          <label class="form-label small text-muted text-uppercase fw-semibold">Floor</label>
+                          <input type="number" name="floor" class="form-control" value="{{ room.floor }}" min="1" max="50" required>
+                        </div>
+                        <div class="col-6">
+                          <label class="form-label small text-muted text-uppercase fw-semibold">Capacity</label>
+                          <input type="number" name="capacity" class="form-control" value="{{ room.capacity }}" min="1" max="10" required>
+                        </div>
+                      </div>
+                      <div class="mb-3">
+                        <label class="form-label small text-muted text-uppercase fw-semibold">Operational Status</label>
+                        <select name="operational_status" class="form-select">
+                          <option value="operational" {% if room.operational_status == 'operational' %}selected{% endif %}>Operational (Ready for Booking)</option>
+                          <option value="maintenance" {% if room.operational_status == 'maintenance' %}selected{% endif %}>Under Maintenance (Blocked)</option>
+                          <option value="out_of_order" {% if room.operational_status == 'out_of_order' %}selected{% endif %}>Out of Order (Blocked)</option>
+                        </select>
+                      </div>
+                      <div class="mb-3">
+                        <label class="form-label small text-muted text-uppercase fw-semibold">Assigned Amenities</label>
+                        <div class="row g-1 border rounded p-2" style="max-height: 140px; overflow-y: auto;">
+                          {% for am in amenities %}
+                            <div class="col-6">
+                              <div class="form-check small">
+                                <input class="form-check-input" type="checkbox" name="amenities" value="{{ am.id }}" id="edit_am_{{ room.id }}_{{ am.id }}" {% if am in room.amenities %}checked{% endif %}>
+                                <label class="form-check-label" for="edit_am_{{ room.id }}_{{ am.id }}">{{ am.name }}</label>
+                              </div>
+                            </div>
+                          {% endfor %}
+                        </div>
+                      </div>
+                      <div class="mb-3">
+                        <label class="form-label small text-muted text-uppercase fw-semibold">Staff Notes</label>
+                        <textarea name="notes" class="form-control" rows="2">{{ room.notes or '' }}</textarea>
+                      </div>
+                    </div>
+                    <div class="modal-footer bg-light">
+                      <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+                      <button type="submit" class="btn btn-gold btn-sm">Save Changes</button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            </div>
+          {% endfor %}
+        {% else %}
+          <tr>
+            <td colspan="8" class="text-center py-5 text-muted">
+              <i class="bi bi-door-closed fs-1 d-block mb-2 text-secondary"></i>
+              No rooms match your filter criteria.
+            </td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Add Room Modal -->
+<div class="modal fade" id="addRoomModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header bg-navy text-white" style="background-color: #1A2238;">
+        <h5 class="modal-title font-serif"><i class="bi bi-plus-circle text-gold me-2"></i> Register New Room Unit</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <form action="{{ url_for('rooms.create') }}" method="POST">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="modal-body p-4">
+          <div class="mb-3">
+            <label class="form-label small text-muted text-uppercase fw-semibold">Room Number *</label>
+            <input type="text" name="room_number" class="form-control" required placeholder="e.g. 501, PH-2">
+          </div>
+          <div class="mb-3">
+            <label class="form-label small text-muted text-uppercase fw-semibold">Room Classification Type *</label>
+            <select name="room_type_id" class="form-select" required>
+              <option value="">Select Room Type...</option>
+              {% for rt in room_types %}
+                <option value="{{ rt.id }}">{{ rt.code }} &mdash; {{ rt.name }} (₹{{ "{:,.2f}".format(rt.base_price) }}/night)</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="row g-2 mb-3">
+            <div class="col-6">
+              <label class="form-label small text-muted text-uppercase fw-semibold">Floor *</label>
+              <input type="number" name="floor" class="form-control" value="1" min="1" max="50" required>
+            </div>
+            <div class="col-6">
+              <label class="form-label small text-muted text-uppercase fw-semibold">Capacity *</label>
+              <input type="number" name="capacity" class="form-control" value="2" min="1" max="10" required>
+            </div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label small text-muted text-uppercase fw-semibold">Operational Status</label>
+            <select name="operational_status" class="form-select">
+              <option value="operational" selected>Operational (Available for Reservation)</option>
+              <option value="maintenance">Under Maintenance</option>
+              <option value="out_of_order">Out of Order</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label small text-muted text-uppercase fw-semibold">Select Room Amenities</label>
+            <div class="row g-1 border rounded p-2" style="max-height: 140px; overflow-y: auto;">
+              {% for am in amenities %}
+                <div class="col-6">
+                  <div class="form-check small">
+                    <input class="form-check-input" type="checkbox" name="amenities" value="{{ am.id }}" id="new_am_{{ am.id }}" checked>
+                    <label class="form-check-label" for="new_am_{{ am.id }}">{{ am.name }}</label>
+                  </div>
+                </div>
+              {% endfor %}
+            </div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label small text-muted text-uppercase fw-semibold">Notes</label>
+            <textarea name="notes" class="form-control" rows="2" placeholder="e.g. Corner room with expansive horizon terrace..."></textarea>
+          </div>
+        </div>
+        <div class="modal-footer bg-light">
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-gold btn-sm">Create Room</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

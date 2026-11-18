@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+
+{% block title %}500 Internal Server Error — {{ hotel_name }}{% endblock %}
+
+{% block body %}
+<div class="container py-5 my-auto text-center">
+  <div class="kpi-icon mx-auto mb-3" style="width: 76px; height: 76px; font-size: 2.2rem; background: rgba(198, 40, 40, 0.1); color: #C62828;">
+    <i class="bi bi-gear-wide-connected"></i>
+  </div>
+  <h1 class="font-serif display-4 text-dark">500 Server Error</h1>
+  <p class="text-muted fs-5 max-w-500 mx-auto mb-4">
+    An unexpected server exception occurred while processing this transaction. The database transaction was rolled back safely to preserve financial integrity.
+  </p>
+  <div class="d-flex justify-content-center gap-2">
+    <a href="{{ url_for('public.index') }}" class="btn btn-navy">
+      <i class="bi bi-house me-1"></i> Return Home
+    </a>
+  </div>
+</div>
+{% endblock %}

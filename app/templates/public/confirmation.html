@@ -1,0 +1,118 @@
+{% extends 'base.html' %}
+
+{% block title %}Reservation Confirmed — {{ reservation.confirmation_number }} — {{ hotel_name }}{% endblock %}
+
+{% block body %}
+<div class="container py-5">
+  <div class="row justify-content-center">
+    <div class="col-lg-8">
+      <div class="gh-card p-4 p-md-5 print-document">
+
+        <!-- Header with hotel brand -->
+        <div class="d-flex justify-content-between align-items-start border-bottom pb-4 mb-4">
+          <div>
+            <div class="d-flex align-items-center gap-2 mb-1">
+              <i class="bi bi-shield-shaded text-gold fs-3"></i>
+              <h3 class="font-serif mb-0 text-dark">{{ hotel_name }}</h3>
+            </div>
+            <p class="text-muted small mb-0">{{ hotel_address or 'India' }}</p>
+            <p class="text-muted small mb-0">Phone: {{ hotel_phone }} &bull; {{ hotel_email }}</p>
+          </div>
+          <div class="text-end">
+            <span class="badge bg-success text-white text-uppercase px-3 py-2 mb-2 d-inline-block">Confirmed</span>
+            <div class="fw-bold fs-5 text-dark font-monospace">{{ reservation.confirmation_number }}</div>
+            <small class="text-muted">Booked: {{ reservation.created_at|india_datetime }}</small>
+          </div>
+        </div>
+
+        <div class="alert alert-success d-flex align-items-center gap-2 mb-4" role="alert">
+          <i class="bi bi-check-circle-fill fs-4"></i>
+          <div>
+            <strong>Thank you, {{ reservation.guest.first_name }}!</strong> Your reservation has been registered successfully. Please keep the confirmation number shown above for your records.
+          </div>
+        </div>
+
+        <!-- Details Grid -->
+        <div class="row g-4 mb-4">
+          <div class="col-sm-6">
+            <h6 class="text-gold text-uppercase fw-bold small mb-2">Guest Folio</h6>
+            <p class="mb-1 fw-bold text-dark">{{ reservation.guest.full_name }}</p>
+            <p class="mb-1 text-muted small"><i class="bi bi-envelope me-1"></i> {{ reservation.guest.email }}</p>
+            <p class="mb-0 text-muted small"><i class="bi bi-telephone me-1"></i> {{ reservation.guest.phone }}</p>
+          </div>
+          <div class="col-sm-6">
+            <h6 class="text-gold text-uppercase fw-bold small mb-2">Schedule of Stay</h6>
+            <p class="mb-1 text-dark"><strong>Check-In:</strong> {{ reservation.check_in_date|india_date }} ({{ default_checkin_time }})</p>
+            <p class="mb-1 text-dark"><strong>Check-Out:</strong> {{ reservation.check_out_date|india_date }} ({{ default_checkout_time }})</p>
+            <p class="mb-0 text-muted small">{{ reservation.total_nights }} Night{% if reservation.total_nights > 1 %}s{% endif %} &bull; {{ reservation.adults_count }} Adult(s){% if reservation.children_count > 0 %}, {{ reservation.children_count }} Child(ren){% endif %}</p>
+          </div>
+        </div>
+
+        <!-- Room Allocation Table -->
+        <h6 class="text-gold text-uppercase fw-bold small mb-2">Reserved Accommodations</h6>
+        <div class="table-responsive mb-4">
+          <table class="table gh-table">
+            <thead>
+              <tr>
+                <th>Room Unit</th>
+                <th>Type</th>
+                <th class="text-end">Nightly Rate</th>
+                <th class="text-end">Nights</th>
+                <th class="text-end">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for alloc in reservation.room_allocations %}
+              <tr>
+                <td><strong>Room {{ alloc.room.room_number }}</strong> (Floor {{ alloc.room.floor }})</td>
+                <td>{{ alloc.room.room_type.name }}</td>
+                <td class="text-end">₹{{ "%.2f"|format(alloc.nightly_rate) }}</td>
+                <td class="text-end">{{ alloc.nights }}</td>
+                <td class="text-end fw-bold">₹{{ "%.2f"|format(alloc.subtotal) }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+            <tfoot>
+              <tr>
+                <td colspan="4" class="text-end text-muted">Room Charges Subtotal:</td>
+                <td class="text-end fw-semibold">₹{{ "%.2f"|format(reservation.room_charges) }}</td>
+              </tr>
+              <tr>
+                <td colspan="4" class="text-end text-muted">Estimated Tax (12%):</td>
+                <td class="text-end fw-semibold">₹{{ "%.2f"|format(reservation.tax_amount) }}</td>
+              </tr>
+              <tr class="table-active">
+                <td colspan="4" class="text-end fw-bold text-dark fs-6">Grand Total:</td>
+                <td class="text-end fw-bold text-gold fs-5">₹{{ "%.2f"|format(reservation.total_amount) }}</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+
+        {% if reservation.special_requests %}
+        <div class="p-3 bg-light rounded-3 mb-4">
+          <strong class="d-block text-dark small text-uppercase">Special Requests Noted:</strong>
+          <span class="text-muted small">{{ reservation.special_requests }}</span>
+        </div>
+        {% endif %}
+
+        <div class="border-top pt-3 text-muted small">
+          <p class="mb-1"><strong>Cancellation Policy:</strong> {{ cancellation_policy }} A ₹500 fee applies at or within 48 hours before configured local check-in time, capped at the amount recorded as paid. Refund eligibility outside that window is subject to hotel policy and staff review; this system does not confirm external payouts.</p>
+          <p class="mb-0">Please present valid photo identification and this confirmation number upon arrival at the Grand Haven front desk.</p>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="d-flex justify-content-between align-items-center mt-4 pt-3 border-top no-print">
+          <a href="{{ url_for('public.index') }}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-house me-1"></i> Return Home
+          </a>
+          <button onclick="window.print()" class="btn btn-gold btn-sm">
+            <i class="bi bi-printer me-1"></i> Print Confirmation Slip
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

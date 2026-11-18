@@ -1,0 +1,341 @@
+{% extends 'base.html' %}
+
+{% block title %}Executive Management Dashboard — {{ hotel_name }}{% endblock %}
+
+{% block content %}
+<section class="gh-card mb-4 p-3" id="liveOperations" data-url="{{ url_for('api.staff_events') }}" data-last-id="{{ last_event_id }}" aria-labelledby="liveOperationsHeading">
+  <div class="d-flex align-items-center justify-content-between"><h2 id="liveOperationsHeading" class="h6 mb-0"><i class="bi bi-broadcast-pin text-gold me-2"></i>Live hotel activity</h2><span class="small text-muted">Updates automatically</span></div>
+  <ul id="liveOperationsFeed" class="list-unstyled mb-0 mt-2 small" aria-live="polite"><li class="text-muted">Waiting for new operational events.</li></ul>
+</section>
+<!-- Dashboard Header & Quick Actions -->
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+  <div>
+    <span class="text-gold fw-bold text-uppercase small letter-spacing-1">Hospitality Operations</span>
+    <h3 class="font-serif text-dark mb-0">Executive Management Dashboard</h3>
+    <small class="text-muted"><i class="bi bi-clock me-1"></i> Live Status as of <strong>{{ today_date }}</strong></small>
+  </div>
+  <div class="d-flex flex-wrap gap-2">
+    <a href="{{ url_for('reservations.create') }}" class="btn btn-gold btn-sm d-flex align-items-center gap-1 shadow-sm">
+      <i class="bi bi-plus-circle"></i> New Reservation
+    </a>
+    <a href="{{ url_for('rooms.index') }}" class="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1">
+      <i class="bi bi-door-closed"></i> Rooms
+    </a>
+    <a href="{{ url_for('payments.index') }}" class="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1">
+      <i class="bi bi-credit-card"></i> Payments
+    </a>
+    <a href="{{ url_for('reports.export_csv') }}" class="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1">
+      <i class="bi bi-download"></i> Export Data
+    </a>
+  </div>
+</div>
+
+<!-- Primary Operational KPI Row -->
+<div class="row g-3 mb-4">
+  <div class="col-xl-3 col-sm-6">
+    <div class="kpi-card">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <div class="kpi-label">Available Rooms</div>
+          <div class="kpi-value mt-1 text-success">{{ kpis.available_rooms }}</div>
+          <small class="text-muted">Out of {{ kpis.total_rooms }} inventory units</small>
+        </div>
+        <div class="kpi-icon" style="background: rgba(46, 125, 50, 0.12); color: #2E7D32;">
+          <i class="bi bi-door-open"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-xl-3 col-sm-6">
+    <div class="kpi-card">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <div class="kpi-label">Occupied Rooms</div>
+          <div class="kpi-value mt-1 text-primary">{{ kpis.occupied_rooms }}</div>
+          <small class="text-muted">{{ kpis.occupancy_rate }}% operational occupancy</small>
+        </div>
+        <div class="kpi-icon" style="background: rgba(26, 34, 56, 0.1); color: #1A2238;">
+          <i class="bi bi-person-check"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-xl-3 col-sm-6">
+    <div class="kpi-card">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <div class="kpi-label">Monthly Revenue</div>
+          <div class="kpi-value mt-1 text-gold">₹{{ "{:,.2f}".format(kpis.monthly_revenue) }}</div>
+<small class="text-muted">All-time: ₹{{ "{:,.2f}".format(kpis.all_time_revenue) }}</small>
+        </div>
+        <div class="kpi-icon">
+          <i class="bi bi-currency-rupee"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-xl-3 col-sm-6">
+    <div class="kpi-card">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <div class="kpi-label">Active Bookings</div>
+          <div class="kpi-value mt-1 text-dark">{{ kpis.confirmed_reservations }}</div>
+          <small class="text-muted">{{ kpis.total_reservations }} all-time reservations</small>
+        </div>
+        <div class="kpi-icon" style="background: rgba(239, 108, 0, 0.12); color: #EF6C00;">
+          <i class="bi bi-calendar-check"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Secondary Operational Metrics Row -->
+<div class="row g-3 mb-4">
+  <div class="col-md-3 col-6">
+    <div class="p-3 bg-white rounded-3 border d-flex align-items-center gap-3">
+      <div class="rounded-circle p-2 bg-light text-primary fs-4"><i class="bi bi-box-arrow-in-right"></i></div>
+      <div>
+        <div class="fw-bold fs-5 text-dark mb-0">{{ kpis.today_arrivals }}</div>
+        <small class="text-muted">Today's Arrivals</small>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3 col-6">
+    <div class="p-3 bg-white rounded-3 border d-flex align-items-center gap-3">
+      <div class="rounded-circle p-2 bg-light text-danger fs-4"><i class="bi bi-box-arrow-right"></i></div>
+      <div>
+        <div class="fw-bold fs-5 text-dark mb-0">{{ kpis.today_departures }}</div>
+        <small class="text-muted">Today's Departures</small>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3 col-6">
+    <div class="p-3 bg-white rounded-3 border d-flex align-items-center gap-3">
+      <div class="rounded-circle p-2 bg-light text-warning fs-4"><i class="bi bi-tools"></i></div>
+      <div>
+        <div class="fw-bold fs-5 text-dark mb-0">{{ kpis.maintenance_rooms }}</div>
+        <small class="text-muted">Under Maintenance</small>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3 col-6">
+    <div class="p-3 bg-white rounded-3 border d-flex align-items-center gap-3">
+      <div class="rounded-circle p-2 bg-light text-success fs-4"><i class="bi bi-person-lines-fill"></i></div>
+      <div>
+        <div class="fw-bold fs-5 text-dark mb-0">{{ kpis.total_guests }}</div>
+        <small class="text-muted">Registered Guests</small>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Charts Row (Chart.js) -->
+<div class="row g-4 mb-4">
+  <div class="col-lg-8">
+    <div class="gh-card h-100">
+      <div class="gh-card-header">
+        <h6 class="font-serif text-dark mb-0"><i class="bi bi-graph-up text-gold me-2"></i> Monthly Revenue Trend</h6>
+        <span class="badge bg-light text-muted border">Past 6 Months</span>
+      </div>
+      <div class="p-4" style="height: 320px;">
+        <canvas id="revenueTrendChart"></canvas>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-4">
+    <div class="gh-card h-100">
+      <div class="gh-card-header">
+        <h6 class="font-serif text-dark mb-0"><i class="bi bi-pie-chart text-gold me-2"></i> Status Distribution</h6>
+        <span class="badge bg-light text-muted border">All Bookings</span>
+      </div>
+      <div class="p-4" style="height: 320px;">
+        <canvas id="statusDistributionChart"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Operations Tables Row: Today's Arrivals & Departures -->
+<div class="row g-4 mb-4">
+  <!-- Today's Arrivals -->
+  <div class="col-lg-6">
+    <div class="gh-card h-100">
+      <div class="gh-card-header">
+        <h6 class="font-serif text-dark mb-0"><i class="bi bi-box-arrow-in-right text-success me-2"></i> Today's Scheduled Arrivals</h6>
+        <span class="badge bg-success text-white">{{ today_arrivals|length }} Guest{% if today_arrivals|length != 1 %}s{% endif %}</span>
+      </div>
+      <div class="table-responsive">
+        <table class="table gh-table mb-0">
+          <thead>
+            <tr>
+              <th>Folio / Guest</th>
+              <th>Room(s)</th>
+              <th>Status</th>
+              <th class="text-end">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% if today_arrivals %}
+              {% for res in today_arrivals %}
+                <tr>
+                  <td>
+                    <strong class="text-dark d-block">{{ res.guest.full_name }}</strong>
+                    <small class="text-muted font-monospace">{{ res.confirmation_number }}</small>
+                  </td>
+                  <td>
+                    {% for alloc in res.room_allocations %}
+                      <span class="badge bg-light text-dark border me-1">{{ alloc.room.room_number }}</span>
+                    {% endfor %}
+                  </td>
+                  <td>
+                    <span class="badge {{ res.status|status_badge }}">{{ res.status|replace('_', ' ')|title }}</span>
+                  </td>
+                  <td class="text-end">
+                    <form action="{{ url_for('reservations.check_in', reservation_id=res.id) }}" method="POST" class="d-inline">
+                      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                      <button type="submit" class="btn btn-sm btn-success py-1 px-2" title="Check-In">
+                        <i class="bi bi-box-arrow-in-right me-1"></i> Check In
+                      </button>
+                    </form>
+                  </td>
+                </tr>
+              {% endfor %}
+            {% else %}
+              <tr>
+                <td colspan="4" class="text-center py-4 text-muted small">No arrivals scheduled for today.</td>
+              </tr>
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Today's Departures -->
+  <div class="col-lg-6">
+    <div class="gh-card h-100">
+      <div class="gh-card-header">
+        <h6 class="font-serif text-dark mb-0"><i class="bi bi-box-arrow-right text-danger me-2"></i> Today's Scheduled Departures</h6>
+        <span class="badge bg-danger text-white">{{ today_departures|length }} Guest{% if today_departures|length != 1 %}s{% endif %}</span>
+      </div>
+      <div class="table-responsive">
+        <table class="table gh-table mb-0">
+          <thead>
+            <tr>
+              <th>Folio / Guest</th>
+              <th>Balance Due</th>
+              <th>Status</th>
+              <th class="text-end">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% if today_departures %}
+              {% for res in today_departures %}
+                <tr>
+                  <td>
+                    <strong class="text-dark d-block">{{ res.guest.full_name }}</strong>
+                    <small class="text-muted font-monospace">{{ res.confirmation_number }}</small>
+                  </td>
+                  <td>
+                    {% if res.outstanding_balance > 0 %}
+                      <span class="text-danger fw-bold">₹{{ "{:,.2f}".format(res.outstanding_balance) }}</span>
+                    {% else %}
+                      <span class="text-success small fw-semibold">Settled</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    <span class="badge {{ res.status|status_badge }}">{{ res.status|replace('_', ' ')|title }}</span>
+                  </td>
+                  <td class="text-end">
+                    <form action="{{ url_for('reservations.check_out', reservation_id=res.id) }}" method="POST" class="d-inline">
+                      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                      <button type="submit" class="btn btn-sm btn-danger py-1 px-2" title="Check-Out">
+                        <i class="bi bi-box-arrow-right me-1"></i> Check Out
+                      </button>
+                    </form>
+                  </td>
+                </tr>
+              {% endfor %}
+            {% else %}
+              <tr>
+                <td colspan="4" class="text-center py-4 text-muted small">No departures scheduled for today.</td>
+              </tr>
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Recent Reservations Table -->
+<div class="gh-card">
+  <div class="gh-card-header">
+    <h6 class="font-serif text-dark mb-0"><i class="bi bi-journal-check text-gold me-2"></i> Recent Reservations</h6>
+    <a href="{{ url_for('reservations.index') }}" class="btn btn-outline-gold btn-sm py-1 px-3">View All Bookings</a>
+  </div>
+  <div class="table-responsive">
+    <table class="table gh-table mb-0">
+      <thead>
+        <tr>
+          <th>Confirmation #</th>
+          <th>Guest Name</th>
+          <th>Stay Dates</th>
+          <th>Rooms Allocated</th>
+          <th>Total Amount</th>
+          <th>Status</th>
+          <th class="text-end">Folio</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for res in recent_reservations %}
+          <tr>
+            <td>
+              <a href="{{ url_for('reservations.detail', reservation_id=res.id) }}" class="fw-bold text-dark text-decoration-none font-monospace">
+                {{ res.confirmation_number }}
+              </a>
+            </td>
+            <td>
+              <span class="fw-semibold text-dark">{{ res.guest.full_name }}</span>
+              <small class="text-muted d-block">{{ res.guest.email }}</small>
+            </td>
+            <td>
+              <span class="small text-dark">{{ res.check_in_date|india_date }} &rarr; {{ res.check_out_date|india_date }}</span>
+              <small class="text-muted d-block">{{ res.total_nights }} Night{% if res.total_nights > 1 %}s{% endif %}</small>
+            </td>
+            <td>
+              {% for alloc in res.room_allocations %}
+                <span class="badge bg-light text-dark border me-1">{{ alloc.room.room_number }}</span>
+              {% endfor %}
+            </td>
+            <td>
+              <span class="fw-bold text-dark">₹{{ "{:,.2f}".format(res.total_amount) }}</span>
+              {% if res.outstanding_balance > 0 %}
+                <small class="text-danger d-block">Due: ₹{{ "{:,.2f}".format(res.outstanding_balance) }}</small>
+              {% else %}
+                <small class="text-success d-block">Paid in full</small>
+              {% endif %}
+            </td>
+            <td>
+              <span class="badge {{ res.status|status_badge }}">{{ res.status|replace('_', ' ')|title }}</span>
+            </td>
+            <td class="text-end">
+              <a href="{{ url_for('reservations.detail', reservation_id=res.id) }}" class="btn btn-sm btn-outline-secondary py-1 px-2">
+                <i class="bi bi-eye"></i> Details
+              </a>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+{% endblock %}
